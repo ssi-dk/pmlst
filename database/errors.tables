@@ -1,0 +1,14 @@
+Error: First line doesn't match re: cbotulinum.txt STError: line doesn't match re: incf.txt 
+Error: First line doesn't match re: llactis.txt <!DOCTYPE HTML PUBLIC "-//IETF//DTD HTML 2.0//EN">Error: line doesn't match re: vibrio.txt 1	1	1	1	1	
+Error: line doesn't match re: vibrio.txt 2	2	2	2	2	
+Error: line doesn't match re: vibrio.txt 3	3	3	3	3	
+Error: line doesn't match re: vibrio.txt 4	4	4	4	4	
+Error: line doesn't match re: vibrio.txt 5	5	5	5	5	
+Error: line doesn't match re: vibrio.txt 6	6	4	6	6	
+Error: line doesn't match re: vibrio.txt 7	7	6	7	7	
+Error: line doesn't match re: vibrio.txt 8	8	7	8	8	
+Error: line doesn't match re: vibrio.txt 9	9	8	9	9	
+Traceback (most recent call last):
+  File "/home/people/dbman/imports/pubmlst/cleaning_ST_tables.py", line 164, in ?
+    sys.stdout.write(list_line[j])
+IndexError: list index out of range
