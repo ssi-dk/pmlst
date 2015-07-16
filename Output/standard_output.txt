@@ -1,21 +1,4 @@
 [F3:A3:B3]
-FII: PERFECT MATCH, ID: 100%, HSP/Length: 154/154, Gaps: 0, Best match: FII_3
-
-pMLST allele seq:   cgaaaaccccgataatctttctatgtttggcgacgaagaagattaccggggccatctaaa
-                    ||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||
-Hit in genome:      cgaaaaccccgataatctttctatgtttggcgacgaagaagattaccggggccatctaaa
-
-pMLST allele seq:   aaccgcatagaagctgttgctctatgcggggagtatagttatatgcccggaaaagttcaa
-                    ||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||
-Hit in genome:      aaccgcatagaagctgttgctctatgcggggagtatagttatatgcccggaaaagttcaa
-
-pMLST allele seq:   gacttctttctgtgctcactccttctgtgcaaca
-                    ||||||||||||||||||||||||||||||||||
-Hit in genome:      gacttctttctgtgctcactccttctgtgcaaca
-
-
---------------------------------------------------------------------------------
-
 FIA: PERFECT MATCH, ID: 100%, HSP/Length: 408/408, Gaps: 0, Best match: FIA_3
 
 pMLST allele seq:   ccatgctggttctagagaaggtgttgtgacaaattgcccttaaccctgtgacaaattgcc
@@ -45,6 +28,23 @@ Hit in genome:      gaaaatctgatggcaccctacaggaacatgacggtatctgcgagatccatgttgctaaat
 pMLST allele seq:   atgctgaaatattcggattgacctctgcggaagctagtaaggatatac
                     ||||||||||||||||||||||||||||||||||||||||||||||||
 Hit in genome:      atgctgaaatattcggattgacctctgcggaagctagtaaggatatac
+
+
+--------------------------------------------------------------------------------
+
+FII: PERFECT MATCH, ID: 100%, HSP/Length: 154/154, Gaps: 0, Best match: FII_3
+
+pMLST allele seq:   cgaaaaccccgataatctttctatgtttggcgacgaagaagattaccggggccatctaaa
+                    ||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||
+Hit in genome:      cgaaaaccccgataatctttctatgtttggcgacgaagaagattaccggggccatctaaa
+
+pMLST allele seq:   aaccgcatagaagctgttgctctatgcggggagtatagttatatgcccggaaaagttcaa
+                    ||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||
+Hit in genome:      aaccgcatagaagctgttgctctatgcggggagtatagttatatgcccggaaaagttcaa
+
+pMLST allele seq:   gacttctttctgtgctcactccttctgtgcaaca
+                    ||||||||||||||||||||||||||||||||||
+Hit in genome:      gacttctttctgtgctcactccttctgtgcaaca
 
 
 --------------------------------------------------------------------------------

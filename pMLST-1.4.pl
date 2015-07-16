@@ -17,6 +17,7 @@ use constant PROGRAM_NAME_LONG       => 'Calculate pMLST profile for a sequence 
 use constant VERSION                 => '1.4';
 
 #Global variables
+my $BLAST;
 my $BLASTALL;
 my $FORMATDB;
 my $MLST_DB;
@@ -35,12 +36,17 @@ if (defined $Help || not defined $Organism || not defined $InFile) {
    exit;
 }
 
-#If there are not given a path to the different databases and BLAST the program assume that the files are located as downloaded from the webside
-if (not defined $BLASTALL or not defined $FORMATDB or not defined $MLST_DB or not defined $dir) {
+#If there are not given a path to the database or BLAST the program assume that the files are located in the curet directury
+if (not defined $BLAST) {
    $BLASTALL = "blast-2.2.26/bin/blastall";
    $FORMATDB = "blast-2.2.26/bin/formatdb";
+}
+if (not defined $MLST_DB) {
    $MLST_DB = "database";
-   $dir = "Output";
+}
+if (not defined $dir) {
+  mkdir "output";
+  $dir = "output";
 }
 
 # --------------------------------------------------------------------
@@ -539,27 +545,24 @@ sub commandline_parsing {
             shift @ARGV;
             shift @ARGV;
         }
-        elsif ($ARGV[0] =~ m/^-blast$/) {
-            $BLASTALL = $ARGV[1];
+        elsif ($ARGV[0] =~ m/^-b$/) {
+            $BLAST = $ARGV[1];
+			$BLASTALL = "$BLAST/bin/blastall";
+            $FORMATDB = "$BLAST/bin/formatdb";
             shift @ARGV;
             shift @ARGV;
         }
-        elsif ($ARGV[0] =~ m/^-format$/) {
-            $FORMATDB = $ARGV[1];
-            shift @ARGV;
-            shift @ARGV;
-        }
-        elsif ($ARGV[0] =~ m/^-o$/) {
+        elsif ($ARGV[0] =~ m/^-s$/) {
             $Organism = $ARGV[1];
             shift @ARGV;
             shift @ARGV;
         }
-        elsif ($ARGV[0] =~ m/^-file$/) {
+        elsif ($ARGV[0] =~ m/^-i$/) {
             $InFile = $ARGV[1];
             shift @ARGV;
             shift @ARGV;
         }
-        elsif ($ARGV[0] =~ m/^-outdir$/) {
+        elsif ($ARGV[0] =~ m/^-o$/) {
             $dir = $ARGV[1];
             shift @ARGV;
             shift @ARGV;
@@ -740,9 +743,6 @@ sub output_sequence {
 }
 
 
-
-
-
 # --------------------------------------------------------------------
 # %% Help Page/Documentation %%
 #
@@ -758,10 +758,8 @@ NAME
 	$ProgName - $ProgNameLong
 
 SYNOPSIS
-	$ProgName -d [Species] [Options] < [File]
-     or
-	$ProgName -d [Species] -i [File] [Options]
-
+	$ProgName [Options]
+	
 DESCRIPTION
 	Calculates the pMLST profile based on a BLAST alignment of the input
 	sequence file and the specified allele set. If possible the ST will be
@@ -770,49 +768,34 @@ DESCRIPTION
         Notice that although the options mimic that the input sequences are
 	aligned against the alleles, it is in fact the other way around. First,
 	the input is converted to a blast database, against which is aligned the
-	alleles from the species specified with '-d'.
+	alleles from the species specified with '-s'.
 
 	Notice also that the default options for BLAST are changed to suit the
-	pMLST alignment. Although the user can change the arguments just as if he
-	was running blastall directly, this is the command line used as default
-	in this script:
-
-        $BLASTALL $CMD
-
-	These defaults can be overridden by giving them as arguments to this
-	script, although it will likely break if anything other than '-a' is
-	changed. Example:
-
-	$ProgName -a 10 -i [File] -d [pMLST Database]
+	pMLST alignment. 
 
 OPTIONS
-	Most options are simply forwarded to the call to BLAST. A few are unique
-	to this script and a few blast arguments deserve special mention.
 
-     -d [Species]
-	The species for which the pMLST should be calculated.
-	Should follow a simple format, e.g. Senterica, Cjejuni, etc. These are
-	in fact the core names of a .fsa and .table file pair located in the
-	database directory:
+	-h HELP
+                    Prints a message with options and information to the screen
+    -d DATABSE
+                    The path to where you have located the database folder
+    -b BLAST
+                    The path to the location of blast-2.2.26
+    -i INFILE
+                    Your input file which needs to be preassembled partial or complete genomes in fasta format
+    -o OUTFOLDER
+                    The folder you want to have your output files places
+    -s SPECIES
+                    The pMLST scheme you want to use. The options can be found in the *pmlst_schemes* file
 
-	$MLST_DB
+Example of use with the *database* and *blast-2.2.26* folder loacted in the current directory
+    
+    perl pMLST-1.4.pl -i INFILE.fasta -o OUTFOLDER -s incf 
 
-     -I [Format]
-	Specify the sequence format of the input file.
-	If the input file is in another format than fasta, this can be specified
-	here. Most BioPerl sequence formats are supported.
-	Default is 'fasta'
+Example of use with the *database* and *blast-2.2.26* folder loacted in antoher directory
 
-     -O [Format]
-	Specifies the format of the output.
-	If left unspecified (the default), the ST is given along with the
-	corresponding allele numbers in a tabbed format. If set to a sequence
-	format, e.g. 'tab' or 'fasta', the sequence of the alleles will instead
-	be outputted in the requested format.
-
-     -h or --help
-	Prints this text.
-
+    perl pMLST-1.4.pl -d path/to/database -b path/to/blast-2.2.26 -i INFILE.fasta -o OUTFOLDER -s incf 
+    
 VERSION
     Current: $Version
 
