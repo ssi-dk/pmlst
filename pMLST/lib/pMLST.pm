@@ -962,7 +962,9 @@ sub print_txt_results{
 	#if one or more alleles do not match perfectly, a -like* will be adde to the sequence results
 	foreach my $key (sort { if(lc($a) eq 'fii'){return -1;}else{return lc($a) cmp lc($b);}} (keys %{$geneResultsHash})) {
 		my $array = ${$geneResultsHash}{$key};
-		if( @$array[0] ne "perfect" ){ $stwarning = 1; }
+		if (@{$resultsAndSettingsArray}[2] ne "IncF" and @{$resultsAndSettingsArray}[2] ne "incf") {
+		  if( @$array[0] ne "perfect" ){ $stwarning = 1; }
+		}
 	}
 	
 	#Finding the right ST for IncF
@@ -980,12 +982,18 @@ sub print_txt_results{
 		my $hspLen = @$array[3];
 		my $allLen = @$array[2];
 		
-		if ($ST[$i] =~ m/FII\_(\w*\d+)/) {
+		if ($ST[$i] =~ m/FII\_(\w*)(\d+)/) {
 		  if ($identity == 100 and $hspLen / $allLen == 1) {
-			$IAB[0] = $1;
+			if ($1 ne '') {
+               $FAB[0] = $1;
+            }
+			$IAB[0] = $2;
 		  }
 		  elsif ($identity > 85 and $hspLen / $allLen > 0.66) {
-			$IAB[0] = "$1*";
+			if ($1 ne '') {
+               $FAB[0] = $1;
+            }
+            $IAB[0] = "$2*";
 		  }
 		}
 		if ($ST[$i] =~ m/FIA\_(\w*\d+)/) {
@@ -1033,7 +1041,8 @@ sub print_txt_results{
 	$txtresults .= "pMLST Results\n\n";
 	#$txtresults .= "Sequence Type: ".$st."\n";
 	if ($stwarning == 1 and $st ne "Unknown ST") {
-	   $txtresults .= "Sequence Type: Unknown ST - closest match: $st\n"; 
+	   $txtresults .= "Sequence Type: Unknown ST\n";
+	   $txtresults .= "Closest match: $st\n"; 
 	}
 	else {
 	   $txtresults .= "Sequence Type: ".$st."\n"; 
@@ -1090,8 +1099,6 @@ sub print_txt_results{
 						  	"methods for pMLST!\n\n\nExtended Output:\n".
 							"--------------------------------------------------------------------------------\n\n";
 	}
-	
-	$txtresults = $st."\n";
 	
 	# PRINTING THE EXTENDED OUTPUT
 	foreach my $key (sort { if(lc($a) eq 'fii'){return -1;}else{return lc($a) cmp lc($b);}} (keys %{$geneResultsHash})) {
