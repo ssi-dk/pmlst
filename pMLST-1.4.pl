@@ -11,6 +11,7 @@ use File::Temp qw/ tempfile tempdir /;
 use Bio::SeqIO;
 use Bio::Seq;
 use Bio::SearchIO;
+use Try::Tiny::Retry;
 
 use constant PROGRAM_NAME            => 'pMLST-1.4.pl';
 use constant PROGRAM_NAME_LONG       => 'Calculate pMLST profile for a sequence or genome';
@@ -54,13 +55,16 @@ if (not defined $dir) {
 #
 
 # Run BLAST and find best matching Alleles
+my ($Seqs_mlst, $Seqs_input, @Blast_lines);
 
-my $Seqs_mlst   = read_seqs(-file => $MLST_DB.'/'.$Organism.'.fsa', format => 'fasta');  
+retry{
+   $Seqs_mlst   = read_seqs(-file => $MLST_DB.'/'.$Organism.'.fsa', format => 'fasta');  
+   $Seqs_input  = $InFile ne "" ? read_seqs(-file => $InFile, -format => $IFormat) :
+                                    read_seqs(-fh => \*STDIN,   -format => $IFormat);
 
-my $Seqs_input  = $InFile ne "" ? read_seqs(-file => $InFile, -format => $IFormat) : 
-                                  read_seqs(-fh => \*STDIN,   -format => $IFormat);
-
-my @Blast_lines = get_blast_run(-d => $Seqs_input, -i => $Seqs_mlst, %ARGV);
+   @Blast_lines = get_blast_run(-d => $Seqs_input, -i => $Seqs_mlst, %ARGV);
+}
+catch{ die $_ };
 
 ## AVAILABLE ORGANISMS ##
 # hash mapping the mlst profiles to organism names
@@ -592,13 +596,11 @@ sub get_blast_run {
   #die "Error! Could not build blast database" if (system("/usr/cbs/bio/bin/Linux/x86_64/formatdb -p F -i $file"));
   die "Error! Could not build blast database" if (system("$FORMATDB -p F -i $file"));
   my $query_file = $file.".blastpipe";
-  #`mknod $query_file p`;
-  if ( !fork() ) {
-    open QUERY, ">> $query_file" || die("Error! Could not perform blast run");
-    output_sequence(-fh => \*QUERY, seqs => $args{-i}, -format => 'fasta');
-    close QUERY;
-    exit(0);
-  }
+   
+  open QUERY, ">> $query_file" || die("Error! Could not perform blast run");
+  output_sequence(-fh => \*QUERY, seqs => $args{-i}, -format => 'fasta');
+  close QUERY;
+
   delete $args{-i};
   my $cmd = join(" ", %args);
   #my ($fh2, $file2) = tempfile( DIR => '/scratch', UNLINK => 1);
@@ -917,6 +919,7 @@ sub print_txt_results{
 	my ($resultsAndSettingsArray, $geneResultsHash, $geneAlignQueryHash, $geneAlignHomoHash, $geneAlignHitHash) = @_;
 	#print "print_txt_results::START\n"; #DEBUG
 	my $txtresults = "";
+   my $tabr = "";
 	my $allelealign = "";
 	my $hits = "";
 	
@@ -946,36 +949,48 @@ sub print_txt_results{
 		my $identity = @$array[1];
 		my $hspLen = @$array[3];
 		my $allLen = @$array[2];
-        
-		if ($ST[$i] =~ m/FII\_(\w*)(\d+)/) {
-		  if ($identity == 100 and $hspLen / $allLen == 1) {
-            if (defined($1)) {
+		
+		if ($ST[$i] =~ m/FII\_([A-Za-z]*)(\d+)/) {
+		  if ($identity == 100 and $allLen > 0 and $hspLen / $allLen == 1) {
+			if ($1 ne '') {
                $FAB[0] = $1;
             }
 			$IAB[0] = $2;
 		  }
-		  elsif ($identity > 85 and $hspLen / $allLen > 0.66) {
-			if (defined($1)) {
+		  elsif ($identity > 85 and $allLen > 0 and $hspLen / $allLen > 0.66) {
+			if ($1 ne '') {
                $FAB[0] = $1;
             }
             $IAB[0] = "$2*";
 		  }
 		}
-		if ($ST[$i] =~ m/FIA\_(\w*\d+)/) {
-		  if ($identity == 100 and $hspLen / $allLen == 1) {
-			$IAB[1] = $1;
+		if ($ST[$i] =~ m/FIA\_([A-Za-z]*)(\d+)/) {
+		  if ($identity == 100 and $allLen > 0 and $hspLen / $allLen == 1) {
+			if ($1 ne '') {
+               $FAB[1] = $1;
+            }
+			$IAB[1] = $2;
 		  }
-		  elsif ($identity > 85 and $hspLen / $allLen > 0.66) {
-			$IAB[1] = "$1*";
+		  elsif ($identity > 85 and $allLen > 0 and $hspLen / $allLen > 0.66) {
+			if ($1 ne '') {
+               $FAB[1] = $1;
+            }
+            $IAB[1] = "$2*";
 		  }
 		}
-		if ($ST[$i] =~ m/FIB\_(\w*\d+)/) {
-		  if ($identity == 100 and $hspLen / $allLen == 1) {
-			$IAB[2] = $1;
+		if ($ST[$i] =~ m/FIB\_([A-Za-z]*)(\d+)/) {
+		  if ($identity == 100 and $allLen > 0 and $hspLen / $allLen == 1) {
+			if ($1 ne '') {
+               $FAB[2] = $1;
+            }
+			$IAB[2] = $2;
 		  }
-		  elsif ($identity > 85 and $hspLen / $allLen > 0.66) {
-			$IAB[2] = "$1*";
-		  } 
+		  elsif ($identity > 85 and $allLen > 0 and $hspLen / $allLen > 0.66) {
+			if ($1 ne '') {
+               $FAB[2] = $1;
+            }
+            $IAB[2] = "$2*";
+		  }
 		}
 		
 		$i++;
@@ -983,7 +998,7 @@ sub print_txt_results{
 	  
 	  #Writing the ST in the right way
 	  $st ='[';
-	  my $i = 0;
+	  $i = 0;
 	  while ($i <= 2) {
 		$st .= join('', $FAB[$i],$IAB[$i]);
 		if ($i!= 2){
@@ -996,6 +1011,7 @@ sub print_txt_results{
 	  if ($st =~ m/^\[F-:A-:B-]$/) {
 		$st = "Unknown ST";
 	  }
+	  
 	}
 	else {
 	  $st =  @{$resultsAndSettingsArray}[0] ;
@@ -1005,16 +1021,19 @@ sub print_txt_results{
 	$txtresults .= "pMLST Results\n\n";
 	#$txtresults .= "Sequence Type: ".$st."\n";
 	if ($stwarning == 1 and $st ne "Unknown ST") {
-	   $txtresults .= "Sequence Type: Unknown ST - closest match: $st\n"; 
+	   $txtresults .= "Sequence Type: Unknown ST - closest match: $st\n";
+      $tabr .= "Sequence Type: Unknown ST - closest match: $st\n";
 	}
 	else {
-	   $txtresults .= "Sequence Type: ".$st."\n"; 
+	   $txtresults .= "Sequence Type: ".$st."\n";
+      $tabr .= "Sequence Type: ".$st."\n";
 	} 
 	#$txtresults .= "pMLST Profile: ".@{$resultsAndSettingsArray}[2]."\n\n";
 
 	# PRINTING RESULT TABLE
 
 	#$txtresults .= "--------------------------------------------------------------------------------\n";
+   $tabr .= "Gene\t% Identity\tHSP Length\tAllele Length\tGaps\tBest match\n";
 	$txtresults .= "********************************************************************************\n";
 	$txtresults .= "   GENE       % IDENTITY    HSP Length    Allele Length   GAPS     BEST MATCH   \n";
 	$txtresults .= "********************************************************************************\n";
@@ -1048,6 +1067,7 @@ sub print_txt_results{
 		$identity = sprintf("%.2f", $identity);
 	  }
 		
+     $tabr .= "$locus\t$identity\t$hspLen\t$allLen\t$gaps\t$matchAll\n";
 	  $txtresults .=  "   ".&AlignLeft($locus,12)." ".&AlignRight($identity,6)."       ".&AlignCenter($hspLen,7)."         ".&AlignCenter($allLen,7)."       ".&AlignCenter($gaps,3)." ".&AlignRight($matchAll,14)."\n";
 		
 	  if( @$array[0] ne "perfect" ){ $txtwarning = 1; } # WARNING IS ADDED IF NOT ALL MATCHES ARE PERFECT
@@ -1121,6 +1141,11 @@ sub print_txt_results{
 	open (ALLELE, '>'."$dir/pMLST_allele_seq.fsa") || die("Error! Could not write to pMLST_allele_seq.fsa");
 	print ALLELE $allelealign;
 	close (ALLELE);
+   
+   #WRITING standard_output.tab
+   open (TABRESULTS, '>'."$dir/".'results_tab.txt') || die("Error! Could not write to results_tab.txt");
+   print TABRESULTS $tabr;
+   close (TABRESULTS);
 	
 	return $st;
 }#end sub(print_txt_results)

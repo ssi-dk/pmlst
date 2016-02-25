@@ -982,35 +982,47 @@ sub print_txt_results{
 		my $hspLen = @$array[3];
 		my $allLen = @$array[2];
 		
-		if ($ST[$i] =~ m/FII\_(\w*)(\d+)/) {
-		  if ($identity == 100 and $hspLen / $allLen == 1) {
+		if ($ST[$i] =~ m/FII\_([A-Za-z]*)(\d+)/) {
+		  if ($identity == 100 and $allLen > 0 and $hspLen / $allLen == 1) {
 			if ($1 ne '') {
                $FAB[0] = $1;
             }
 			$IAB[0] = $2;
 		  }
-		  elsif ($identity > 85 and $hspLen / $allLen > 0.66) {
+		  elsif ($identity > 85 and $allLen > 0 and $hspLen / $allLen > 0.66) {
 			if ($1 ne '') {
                $FAB[0] = $1;
             }
             $IAB[0] = "$2*";
 		  }
 		}
-		if ($ST[$i] =~ m/FIA\_(\w*\d+)/) {
-		  if ($identity == 100 and $hspLen / $allLen == 1) {
-			$IAB[1] = $1;
+		if ($ST[$i] =~ m/FIA\_([A-Za-z]*)(\d+)/) {
+		  if ($identity == 100 and $allLen > 0 and $hspLen / $allLen == 1) {
+			if ($1 ne '') {
+               $FAB[1] = $1;
+            }
+			$IAB[1] = $2;
 		  }
-		  elsif ($identity > 85 and $hspLen / $allLen > 0.66) {
-			$IAB[1] = "$1*";
+		  elsif ($identity > 85 and $allLen > 0 and $hspLen / $allLen > 0.66) {
+			if ($1 ne '') {
+               $FAB[1] = $1;
+            }
+            $IAB[1] = "$2*";
 		  }
 		}
-		if ($ST[$i] =~ m/FIB\_(\w*\d+)/) {
-		  if ($identity == 100 and $hspLen / $allLen == 1) {
-			$IAB[2] = $1;
+		if ($ST[$i] =~ m/FIB\_([A-Za-z]*)(\d+)/) {
+		  if ($identity == 100 and $allLen > 0 and $hspLen / $allLen == 1) {
+			if ($1 ne '') {
+               $FAB[2] = $1;
+            }
+			$IAB[2] = $2;
 		  }
-		  elsif ($identity > 85 and $hspLen / $allLen > 0.66) {
-			$IAB[2] = "$1*";
-		  } 
+		  elsif ($identity > 85 and $allLen > 0 and $hspLen / $allLen > 0.66) {
+			if ($1 ne '') {
+               $FAB[2] = $1;
+            }
+            $IAB[2] = "$2*";
+		  }
 		}
 		
 		$i++;
@@ -1018,7 +1030,7 @@ sub print_txt_results{
 	  
 	  #Writing the ST in the right way
 	  $st ='[';
-	  my $i = 0;
+	  $i = 0;
 	  while ($i <= 2) {
 		$st .= join('', $FAB[$i],$IAB[$i]);
 		if ($i!= 2){
