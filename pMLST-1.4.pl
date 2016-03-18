@@ -791,10 +791,10 @@ OPTIONS
     -o OUTFOLDER
                     The folder you want to have your output files places.
                     If not specified the program will create a folder named
-                    'Output' in which the result files will be stored.
-    -s SPECIES
-                    The pMLST scheme you want to use. The options can be found in
-                    the 'pmlst_schemes' file
+                    'Output' in which the result files will be stored
+    -s SCHEME
+                    The pMLST scheme you want to use. Details about the
+                    available schemes can be found in the config file
 
 Example of use with the 'database' folder located in the current directory and Blast added to the user's path
     
