@@ -46,8 +46,7 @@ if (not defined $MLST_DB) {
    $MLST_DB = "database";
 }
 if (not defined $dir) {
-  mkdir "output";
-  $dir = "output";
+  $dir = ".";
 }
 
 # --------------------------------------------------------------------
