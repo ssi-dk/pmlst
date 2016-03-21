@@ -531,8 +531,6 @@ push(@RESULTS_AND_SETTINGS_ARRAY, $InFile);
 #### TXT PRINTING ####
 my $seqtype = print_txt_results(\@RESULTS_AND_SETTINGS_ARRAY, \%GENE_RESULTS_HASH, \%GENE_ALIGN_QUERY_HASH, \%GENE_ALIGN_HOMO_HASH, \%GENE_ALIGN_HIT_HASH);
 
-print STDERR "Done\n";
-
 exit;
 
 
@@ -550,7 +548,7 @@ sub commandline_parsing {
         }
         elsif ($ARGV[0] =~ m/^-b$/) {
             $BLAST = $ARGV[1];
-			$BLASTALL = "$BLAST/bin/blastall";
+            $BLASTALL = "$BLAST/bin/blastall";
             $FORMATDB = "$BLAST/bin/formatdb";
             shift @ARGV;
             shift @ARGV;
