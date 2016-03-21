@@ -920,6 +920,7 @@ sub print_txt_results{
    my $tabr = "";
 	my $allelealign = "";
 	my $hits = "";
+   my $scheme = @{$resultsAndSettingsArray}[2];
 	
 	# INITIALIZING WARNING VARIABLE
 	my $txtwarning = 0;
@@ -928,7 +929,7 @@ sub print_txt_results{
 	#if one or more alleles do not match perfectly, a -like* will be adde to the sequence results
 	foreach my $key (sort { if(lc($a) eq 'fii'){return -1;}else{return lc($a) cmp lc($b);}} (keys %{$geneResultsHash})) {
 		my $array = ${$geneResultsHash}{$key};
-		if (@{$resultsAndSettingsArray}[2] ne "IncF" and @{$resultsAndSettingsArray}[2] ne "incf") {
+		if ($scheme ne "IncF" and $scheme ne "incf") {
 		  if( @$array[0] ne "perfect" ){ $stwarning = 1; }
 		}
 	}
@@ -938,7 +939,7 @@ sub print_txt_results{
 	my @IAB = ('-','-','-');
 	my $st;
 	
-	if (@{$resultsAndSettingsArray}[2] eq "IncF" or @{$resultsAndSettingsArray}[2] eq "incf") {
+	if ($scheme eq "IncF" or $scheme eq "incf") {
 	  my @ST = split("\t", @{$resultsAndSettingsArray}[0]);
 	  my $i = 0;
 	  
@@ -1017,14 +1018,16 @@ sub print_txt_results{
 	
 	# PRINTING HEADER / SETTINGS
 	$txtresults .= "pMLST Results\n\n";
+	$txtresults .= "Scheme: $scheme\n";
+   $tabr .= "SScheme: $scheme\n";
 	#$txtresults .= "Sequence Type: ".$st."\n";
 	if ($stwarning == 1 and $st ne "Unknown ST") {
 	   $txtresults .= "Sequence Type: Unknown ST - closest match: $st\n";
       $tabr .= "Sequence Type: Unknown ST - closest match: $st\n";
 	}
 	else {
-	   $txtresults .= "Sequence Type: ".$st."\n";
-      $tabr .= "Sequence Type: ".$st."\n";
+	   $txtresults .= "Sequence Type: $st\n";
+      $tabr .= "Sequence Type: $st\n";
 	} 
 	#$txtresults .= "pMLST Profile: ".@{$resultsAndSettingsArray}[2]."\n\n";
 
