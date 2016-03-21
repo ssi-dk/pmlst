@@ -879,10 +879,10 @@ sub formatName {
 
 
 # --------------------------------------------------------------------
-# print_txt_results creates 3 files: Hit_in_genome_seq.fsa, pMLST_allele_seq.fsa and standard_output.txt
+# print_txt_results creates 3 files: Hit_in_genome_seq.fsa, pMLST_allele_seq.fsa and results.txt
 #
 sub print_txt_results{
-# %% standard_output.txt is a text result table and list of alleles  %%
+# %% results.txt is a text result table and list of alleles  %%
 # Generates a tab separated text table containing the scripts results and alignment
 # eg.
 # pMLST Results                                                                   
@@ -1125,8 +1125,8 @@ sub print_txt_results{
     }
   }#end foreach
 
-	#WRITING standard_output.txt
-	open (TXTRESULTS, '>'."$dir/standard_output.txt") || die("Error! Could not write to standard_output.txt");
+	#WRITING results.txt
+	open (TXTRESULTS, '>'."$dir/results.txt") || die("Error! Could not write to results.txt");
 	print TXTRESULTS $txtresults;
 	close (TXTRESULTS);
 
