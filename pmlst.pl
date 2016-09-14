@@ -46,8 +46,7 @@ if (not defined $MLST_DB) {
    $MLST_DB = "database";
 }
 if (not defined $dir) {
-  mkdir "output";
-  $dir = "output";
+  $dir = ".";
 }
 
 # --------------------------------------------------------------------
@@ -532,8 +531,6 @@ push(@RESULTS_AND_SETTINGS_ARRAY, $InFile);
 #### TXT PRINTING ####
 my $seqtype = print_txt_results(\@RESULTS_AND_SETTINGS_ARRAY, \%GENE_RESULTS_HASH, \%GENE_ALIGN_QUERY_HASH, \%GENE_ALIGN_HOMO_HASH, \%GENE_ALIGN_HIT_HASH);
 
-print STDERR "Done\n";
-
 exit;
 
 
@@ -551,7 +548,7 @@ sub commandline_parsing {
         }
         elsif ($ARGV[0] =~ m/^-b$/) {
             $BLAST = $ARGV[1];
-			$BLASTALL = "$BLAST/bin/blastall";
+            $BLASTALL = "$BLAST/bin/blastall";
             $FORMATDB = "$BLAST/bin/formatdb";
             shift @ARGV;
             shift @ARGV;
@@ -791,10 +788,10 @@ OPTIONS
     -o OUTFOLDER
                     The folder you want to have your output files places.
                     If not specified the program will create a folder named
-                    'Output' in which the result files will be stored.
-    -s SPECIES
-                    The pMLST scheme you want to use. The options can be found in
-                    the 'pmlst_schemes' file
+                    'Output' in which the result files will be stored
+    -s SCHEME
+                    The pMLST scheme you want to use. Details about the
+                    available schemes can be found in the config file
 
 Example of use with the 'database' folder located in the current directory and Blast added to the user's path
     
@@ -882,10 +879,10 @@ sub formatName {
 
 
 # --------------------------------------------------------------------
-# print_txt_results creates 3 files: Hit_in_genome_seq.fsa, pMLST_allele_seq.fsa and standard_output.txt
+# print_txt_results creates 3 files: Hit_in_genome_seq.fsa, pMLST_allele_seq.fsa and results.txt
 #
 sub print_txt_results{
-# %% standard_output.txt is a text result table and list of alleles  %%
+# %% results.txt is a text result table and list of alleles  %%
 # Generates a tab separated text table containing the scripts results and alignment
 # eg.
 # pMLST Results                                                                   
@@ -923,6 +920,7 @@ sub print_txt_results{
    my $tabr = "";
 	my $allelealign = "";
 	my $hits = "";
+   my $scheme = @{$resultsAndSettingsArray}[2];
 	
 	# INITIALIZING WARNING VARIABLE
 	my $txtwarning = 0;
@@ -931,7 +929,7 @@ sub print_txt_results{
 	#if one or more alleles do not match perfectly, a -like* will be adde to the sequence results
 	foreach my $key (sort { if(lc($a) eq 'fii'){return -1;}else{return lc($a) cmp lc($b);}} (keys %{$geneResultsHash})) {
 		my $array = ${$geneResultsHash}{$key};
-		if (@{$resultsAndSettingsArray}[2] ne "IncF" and @{$resultsAndSettingsArray}[2] ne "incf") {
+		if ($scheme ne "IncF" and $scheme ne "incf") {
 		  if( @$array[0] ne "perfect" ){ $stwarning = 1; }
 		}
 	}
@@ -941,7 +939,7 @@ sub print_txt_results{
 	my @IAB = ('-','-','-');
 	my $st;
 	
-	if (@{$resultsAndSettingsArray}[2] eq "IncF" or @{$resultsAndSettingsArray}[2] eq "incf") {
+	if ($scheme eq "IncF" or $scheme eq "incf") {
 	  my @ST = split("\t", @{$resultsAndSettingsArray}[0]);
 	  my $i = 0;
 	  
@@ -1020,8 +1018,13 @@ sub print_txt_results{
 	
 	## PRINTING HEADER / SETTINGS
 	$txtresults .= "pMLST Results\n\n";
+<<<<<<< HEAD:pmlst.pl
    $txtresults .= "pMLST Profile: ".@{$resultsAndSettingsArray}[2]."\n";
    
+=======
+	$txtresults .= "Scheme: $scheme\n";
+   $tabr .= "SScheme: $scheme\n";
+>>>>>>> c3b2e4ad01aa91636944bd2de958d31e32a68122:pMLST-1.4.pl
 	#$txtresults .= "Sequence Type: ".$st."\n";
 	if ($stwarning == 1 and $st ne "Unknown ST") {
 	   $txtresults .= "Sequence Type: Unknown ST\n";
@@ -1031,8 +1034,13 @@ sub print_txt_results{
 	   $tabr .= "Closest match: $st\n";
 	}
 	else {
+<<<<<<< HEAD:pmlst.pl
 	   $txtresults .= "Sequence Type: ".$st."\n";
 		$tabr .= "Sequence Type: ".$st."\n";
+=======
+	   $txtresults .= "Sequence Type: $st\n";
+      $tabr .= "Sequence Type: $st\n";
+>>>>>>> c3b2e4ad01aa91636944bd2de958d31e32a68122:pMLST-1.4.pl
 	} 
 	#$txtresults .= "pMLST Profile: ".@{$resultsAndSettingsArray}[2]."\n\n";
 
@@ -1135,8 +1143,8 @@ sub print_txt_results{
   }#end foreach
 	$tabr .= "pMLST Profile: ".@{$resultsAndSettingsArray}[2]."\n";
 
-	#WRITING standard_output.txt
-	open (TXTRESULTS, '>'."$dir/standard_output.txt") || die("Error! Could not write to standard_output.txt");
+	#WRITING results.txt
+	open (TXTRESULTS, '>'."$dir/results.txt") || die("Error! Could not write to results.txt");
 	print TXTRESULTS $txtresults;
 	close (TXTRESULTS);
 

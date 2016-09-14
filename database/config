@@ -1,0 +1,8 @@
+# Database configuration file - Describes the content of the database
+# Each db consist of 3 files with the following extensions: fsa, clpx, txt.clean
+#db_prefix	name	description
+incf	IncF	pMLST alleles for IncF plasmids
+inchi1	IncHI1	pMLST alleles for IncHI1 plasmids
+inchi2	IncHI2	pMLST alleles for IncHI2 plasmids
+inci1	IncI1	pMLST alleles for IncI1 plasmids
+incn	IncN	pMLST alleles for IncN plasmids
