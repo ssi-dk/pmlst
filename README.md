@@ -2,7 +2,7 @@
 pMLST
 ===================
 
-This project documents MLST service
+This project documents pMLST service
 
 
 Documentation
@@ -10,16 +10,41 @@ Documentation
 
 ## What is it?
 
-The MLST service contains one perl script *pMLST-1.4.pl* which is the script of the lates
+The pMLST service contains one perl script *pmlst.pl* which is the script of the lates
 version of the pMLST service. The method enables investigators to determine the ST based on WGS data.
+
+## Content of the repository
+1. pmlst.pl     - the program
+2. INSTALL_DB   - shell script for downloading the MLST database
+3. UPDATE_DB    - shell script for updating the database to the newest version
+4. VALIDATE_DB  - python script for verifying the database contains all
+                  required files 
+5. brew.sh      - shell script for installing dependencies
+6. makefile     - make script for installing dependencies
+7. test.fsa     - test fasta file
 
 ## Installation
 
-To use the service some data needs to be pre-installed: *database*, Blast and several Perl dependencies.
+Setting up pMLST
+```bash
+# Go to wanted location for resfinder
+cd /path/to/some/dir
+# Clone and enter the mlst directory
+git clone https://bitbucket.org/genomicepidemiology/pmlst.git
+cd mlst
+```
 
-The folder *database* includes all the MLST and pMLST schemes and needs to be updataed to get the best results.
-The datasets are extracted from the http://pubmlst.org/ webside weakly and can be downloaded from
-http://cge.cbs.dtu.dk/services/data.php
+Installing up the pMLST database
+```bash
+cd /path/to/mlst
+./INSTALL_DB database
+
+# Check all DB scripts works, and validate the database is correct
+./UPDATE_DB database
+./VALIDATE_DB database
+```
+
+Installing dependencies:
 
 Perlbrew is used to manage isolated perl environments. To install it run:
 ```bash
@@ -67,7 +92,7 @@ If you don't do that you have to write the full path to the program when using i
 The program can be invoked with the -h option to get help and more information of the service.
 
 ```bash
-Usage: perl pMLST-1.4.pl [options]
+Usage: perl pmlst.pl [options]
 
 Options:
 
@@ -87,16 +112,16 @@ Options:
                     'Output' in which the result files will be stored.
     -s SPECIES
                     The pMLST scheme you want to use. The options can be found in
-                    the 'pmlst_schemes' file
+                    the 'config' file in the database folder
 ```
 
 #### Example of use with the *database* folder located in the current directory and Blast added to the user's path
 ```perl
-    perl pMLST-1.4.pl -i test.fsa -o OUTFOLDER -s incf 
+    perl pmlst.pl -i test.fsa -o OUTFOLDER -s incf 
 ```
 #### Example of use with the *database* and *blast-2.2.26* folders loacted in other directories
 ```perl
-    perl pMLST-1.4.pl -d path/to/database -b path/to/blast-2.2.26 -i test.fsa \
+    perl pmlst.pl -d path/to/database -b path/to/blast-2.2.26 -i test.fsa \
     -o OUTFOLDER -s incf
 ```
 
