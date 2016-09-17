@@ -1018,13 +1018,13 @@ sub print_txt_results{
 	
 	## PRINTING HEADER / SETTINGS
 	$txtresults .= "pMLST Results\n\n";
-<<<<<<< HEAD:pmlst.pl
-   $txtresults .= "pMLST Profile: ".@{$resultsAndSettingsArray}[2]."\n";
-   
-=======
+#<<<<<<< HEAD:pmlst.pl
+   #$txtresults .= "pMLST Profile: ".@{$resultsAndSettingsArray}[2]."\n";
+#   
+#=======
 	$txtresults .= "Scheme: $scheme\n";
-   $tabr .= "SScheme: $scheme\n";
->>>>>>> c3b2e4ad01aa91636944bd2de958d31e32a68122:pMLST-1.4.pl
+   $tabr .= "Scheme: $scheme\n";
+#>>>>>>> c3b2e4ad01aa91636944bd2de958d31e32a68122:pMLST-1.4.pl
 	#$txtresults .= "Sequence Type: ".$st."\n";
 	if ($stwarning == 1 and $st ne "Unknown ST") {
 	   $txtresults .= "Sequence Type: Unknown ST\n";
@@ -1034,13 +1034,13 @@ sub print_txt_results{
 	   $tabr .= "Closest match: $st\n";
 	}
 	else {
-<<<<<<< HEAD:pmlst.pl
-	   $txtresults .= "Sequence Type: ".$st."\n";
-		$tabr .= "Sequence Type: ".$st."\n";
-=======
+#<<<<<<< HEAD:pmlst.pl
+	#   $txtresults .= "Sequence Type: ".$st."\n";
+	#	$tabr .= "Sequence Type: ".$st."\n";
+#=======
 	   $txtresults .= "Sequence Type: $st\n";
       $tabr .= "Sequence Type: $st\n";
->>>>>>> c3b2e4ad01aa91636944bd2de958d31e32a68122:pMLST-1.4.pl
+#>>>>>>> c3b2e4ad01aa91636944bd2de958d31e32a68122:pMLST-1.4.pl
 	} 
 	#$txtresults .= "pMLST Profile: ".@{$resultsAndSettingsArray}[2]."\n\n";
 
