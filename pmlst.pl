@@ -7,7 +7,6 @@
 use strict;
 use Data::Dumper;
 use Getopt::Long qw(:config no_ignore_case no_auto_abbrev pass_through);
-use File::Temp qw/ tempfile tempdir /;
 use Bio::SeqIO;
 use Bio::Seq;
 use Bio::SearchIO;
@@ -71,12 +70,21 @@ catch{ die $_ };
 
 ## AVAILABLE ORGANISMS ##
 # hash mapping the mlst profiles to organism names
-my %mlstProfiles = ('incf' => 'IncF', 'inchi1' => 'IncHI1', 'inchi2' => 'IncHI2', 'inci1' => 'IncI1', 'incn' => 'IncN',
-				'fia' => 'FIA', 'fib' => 'FIB', 'fii' => 'FII', 'fic' => 'FIC', 'fiik' => 'FIIK', 'fiis' => 'FIIS', 'fiiy' => 'FIIY',
-				'hcm1043' => 'hcm1043', 'hcm1064' => 'hcm1064', 'hcm1099' => 'hcm1099', 'hcm1116' => 'hcm1116', 'hcm1178ac' => 'hcm1178ac', 'hcm1259' => 'hcm1259',
-				'smr0018' => 'smr0018', 'smr0199' => 'smr0199',
-				'repi1' => 'repI1', 'arda' => 'ardA', 'trba' => 'trbA', 'sogs' => 'sogS', 'pill' => 'pilL',
-				'repn' => 'repN', 'traj' => 'traJ', 'kora' => 'korA');
+my %mlstProfiles;
+open(IN, '<', "$MLST_DB/config") or die "Error: $!\n";
+while (defined(my $line = <IN>)) {
+   next if $line =~ m/^#/;  # discard comments
+   my @tmp = split("\t", $line);
+   $mlstProfiles{$tmp[0]} = $tmp[1];
+}
+close IN;
+
+#my %mlstProfiles = ('incf' => 'IncF', 'inchi1' => 'IncHI1', 'inchi2' => 'IncHI2', 'inci1' => 'IncI1', 'incn' => 'IncN',
+#				'fia' => 'FIA', 'fib' => 'FIB', 'fii' => 'FII', 'fic' => 'FIC', 'fiik' => 'FIIK', 'fiis' => 'FIIS', 'fiiy' => 'FIIY',
+#				'hcm1043' => 'hcm1043', 'hcm1064' => 'hcm1064', 'hcm1099' => 'hcm1099', 'hcm1116' => 'hcm1116', 'hcm1178ac' => 'hcm1178ac', 'hcm1259' => 'hcm1259',
+#				'smr0018' => 'smr0018', 'smr0199' => 'smr0199',
+#				'repi1' => 'repI1', 'arda' => 'ardA', 'trba' => 'trbA', 'sogs' => 'sogS', 'pill' => 'pilL',
+#				'repn' => 'repN', 'traj' => 'traJ', 'kora' => 'korA');
 
 #Declaring variables
 my @RESULTS_AND_SETTINGS_ARRAY; #will contain the typing results some setting and the hash with the results for each gene
@@ -595,8 +603,7 @@ sub get_blast_run {
    #my ($fh, $file) = tempfile( DIR => '/tmp', UNLINK => 1);
    output_sequence(-file => ">$tmp_dir/$file", seqs => delete $args{-d}, -format => 'fasta');
    die "Error! Could not build blast database" if (system("$FORMATDB -p F -i $tmp_dir/$file"));
-   system("rm -r formatdb.log");
-   system("rm -r  $tmp_dir/$file.n*");
+	
    my $query_file = "$file.blastpipe";
 
    #open QUERY, ">> $query_file" || die("Error! Could not perform blast run");
@@ -640,8 +647,9 @@ sub get_blast_run {
          }
       }
    }
-	system("rm -r $tmp_dir/$file");
-   system("rm -r $tmp_dir/$query_file");
+	system("rm -r error.log");
+   system("rm -r formatdb.log");
+   system("rm -r  $tmp_dir/");
    return @blast;
 }
 
