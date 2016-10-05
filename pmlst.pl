@@ -49,6 +49,10 @@ if (not defined $dir) {
   $dir = ".";
 }
 
+# Making tmp directory for BLST output
+my $tmp_dir = "$dir/tmp";
+mkdir("$dir/tmp");
+
 # --------------------------------------------------------------------
 # %% Main Program %%
 #
@@ -61,7 +65,7 @@ retry{
    $Seqs_input  = $InFile ne "" ? read_seqs(-file => $InFile, -format => $IFormat) :
                                     read_seqs(-fh => \*STDIN,   -format => $IFormat);
 
-   @Blast_lines = get_blast_run(-d => $Seqs_input, -i => $Seqs_mlst, %ARGV);
+   @Blast_lines = get_blast_run($tmp_dir, $Organism, -d => $Seqs_input, -i => $Seqs_mlst, %ARGV);
 }
 catch{ die $_ };
 
@@ -585,64 +589,60 @@ sub commandline_parsing {
 # Returns text lines of blast output
 
 sub get_blast_run {
-  my %args        = @_;
-  #my ($fh, $file) = tempfile( DIR => '/scratch', UNLINK => 1); 
-  my ($fh, $file) = tempfile( DIR => '/tmp', UNLINK => 1);
-  #print "\ntemp filename: $file\n";
-  output_sequence(-fh => $fh, seqs => delete $args{-d}, -format => 'fasta');
-  #die "Error! Could not build blast database" if (system("/usr/cbs/bio/bin/linux64/formatdb -p F -i $file")); 
-  #die "Error! Could not build blast database" if (system("/usr/cbs/bio/bin/Linux/x86_64/formatdb -p F -i $file"));
-  die "Error! Could not build blast database" if (system("$FORMATDB -p F -i $file"));
-  my $query_file = $file.".blastpipe";
-   
-  open QUERY, ">> $query_file" || die("Error! Could not perform blast run");
-  output_sequence(-fh => \*QUERY, seqs => $args{-i}, -format => 'fasta');
-  close QUERY;
+   my ($tmp_dir, $org, %args) = @_;
+   #my $fh = $tmp_dir;
+   my $file = "blast_$org.fsa";
+   #my ($fh, $file) = tempfile( DIR => '/tmp', UNLINK => 1);
+   output_sequence(-file => ">$tmp_dir/$file", seqs => delete $args{-d}, -format => 'fasta');
+   die "Error! Could not build blast database" if (system("$FORMATDB -p F -i $tmp_dir/$file"));
+   system("rm -r formatdb.log");
+   system("rm -r  $tmp_dir/$file.n*");
+   my $query_file = "$file.blastpipe";
 
-  delete $args{-i};
-  my $cmd = join(" ", %args);
-  #my ($fh2, $file2) = tempfile( DIR => '/scratch', UNLINK => 1);
-  my ($fh2, $file2) = tempfile( DIR => '/tmp', UNLINK => 1);
-  #print "\ntemp filename: $file2\n";
-  print $fh2 `$BLASTALL -d $file -i $query_file $cmd`;
-  close $fh2;
-  #system("$BLASTALL -d $file -i $query_file $cmd > $file2");
-  #system ("echo -d $file -i $query_file $cmd ");
-  my $report = new Bio::SearchIO(
-         -file => $file2,
-              -format => "blast"); 
-# Go through BLAST reports one by one              
-my @blast;
-while(my $result = $report->next_result) {
-   # Go through each matching sequence
-   while(my $hit = $result->next_hit)    { 
-      # Go through each each HSP for this sequence
-        while (my$hsp = $hit->next_hsp)  { 
-            push(@blast, 
-	    $result->query_accession . "\t" . 
-	    $result->query_length . "\t" . 
-	    $hsp->hsp_length . "\t" . 
-	    $hsp->gaps . "\t" . 
-	    $hsp->percent_identity .  "\t" .  
-	    $hsp->evalue . "\t" . 
-	    $hsp->bits . "\t" . 
-	    $hsp->query_string ."\t" . 
-	    $hsp->hit_string ."\t" . 
-	    $hsp->homology_string . "\t" . 
-	    $hsp->seq_inds . "\t" .
-	    $hsp->strand('hit') . "\t" .
-	    $hsp->start('hit') . "\t" .
-	    $hsp->end('hit') . "\t" .
-	    $hit->name . "\t" .
-	    $hsp->strand('query') . "\t" .
-	    $hsp->start('query') . "\t" .
-	    $hit->length . "\n");
-      } 
-   } 
-}
-unlink 'formatdb.log', 'error.log', "$file.blastpipe" , "$file.nhr" , "$file.nin" , "$file.nsq";
-#system("rm -rf formatdb.log error.log");
-return @blast;
+   #open QUERY, ">> $query_file" || die("Error! Could not perform blast run");
+   output_sequence(-file => ">$tmp_dir/$query_file", seqs => $args{-i}, -format => 'fasta');
+   #close QUERY;
+   
+   delete $args{-i};
+
+   my $cmd = join(" ", %args);
+   my $file2 = "$tmp_dir/$file.blast_output";
+   system("$BLASTALL -d $tmp_dir/$file -i $tmp_dir/$query_file -o $file2 $cmd");
+
+   my $report = new Bio::SearchIO( -file   => $file2,
+                                   -format => "blast"
+                                 );
+   # Go through BLAST reports one by one
+   my @blast;
+   while(my $result = $report->next_result) {
+      # Go through each matching sequence
+      while(my $hit = $result->next_hit)    {
+         # Go through each each HSP for this sequence
+         while (my$hsp = $hit->next_hsp)  {
+            push(@blast, $result->query_accession ."\t".
+                        $result->query_length ."\t".
+                        $hsp->hsp_length ."\t".
+                        $hsp->gaps ."\t".
+                        $hsp->percent_identity ."\t".
+                        $hsp->evalue ."\t".
+                        $hsp->bits ."\t".
+                        $hsp->query_string ."\t".
+                        $hsp->hit_string ."\t".
+                        $hsp->homology_string ."\t".
+                        $hsp->seq_inds ."\t".
+                        $hsp->strand('hit') ."\t".
+                        $hsp->start('hit') ."\t".
+                        $hsp->end('hit') ."\t".
+                        $hit->name ."\t".
+                        $hsp->strand('query') ."\t".
+                        $hsp->start('query') ."\t".
+                        $hit->length ."\n");
+         }
+      }
+   }
+	system("rm -r $tmp_dir/$file");
+   system("rm -r $tmp_dir/$query_file");
+   return @blast;
 }
 
 ###################################
@@ -725,22 +725,24 @@ sub Getting_gaps {
 #   The filehandle and filename
 
 sub output_sequence {
-  my %args = @_;
-  my $seqs_ref = delete $args{seqs};
-  my $i = 1;
-  $args{-fh} = \*STDOUT unless (exists $args{-fh} or exists $args{-file});
-  if (exists $args{tempdir}) {
-    my $tempdir = delete $args{tempdir};
-    ($args{-fh}, $args{-file}) = tempfile(DIR => $tempdir, SUFFIX => ".".$args{-format})
-  }
-  my $file = delete $args{-file} if (exists $args{-fh} && exists $args{-file}); # Stupid BioPerl cannot handle that both might be set...
-  my $seq_out = Bio::SeqIO->new(%args);
-  $args{-file} = $file if (defined $file);
-  for my $seq (@{ $seqs_ref }) {
-    $seq_out->write_seq($seq);
-  }
-  return ($args{-fh}, $args{-file});
+   my %args = @_;
+   my $seqs_ref = delete $args{seqs};
+   my $i = 1;
+   #$args{-fh} = \*STDOUT unless (exists $args{-fh} or exists $args{-file});
+   #if (exists $args{tempdir}) {
+   #   my $tempdir = delete $args{tempdir};
+   #   ($args{-fh}, $args{-file}) = tempfile(DIR => $tempdir, SUFFIX => ".".$args{-format})
+   #}
+   my $file = delete $args{-file} if (exists $args{-fh} && exists $args{-file}); # Stupid BioPerl cannot handle that both might be set...
+   print %args;
+   my $seq_out = Bio::SeqIO->new(%args);
+   $args{-file} = $file if (defined $file);
+   for my $seq (@{ $seqs_ref }) {
+      $seq_out->write_seq($seq);
+   }
+   return ($args{-fh}, $args{-file});
 }
+
 
 
 # --------------------------------------------------------------------
@@ -1018,14 +1020,8 @@ sub print_txt_results{
 	
 	## PRINTING HEADER / SETTINGS
 	$txtresults .= "pMLST Results\n\n";
-#<<<<<<< HEAD:pmlst.pl
-   #$txtresults .= "pMLST Profile: ".@{$resultsAndSettingsArray}[2]."\n";
-#   
-#=======
-	$txtresults .= "Scheme: $scheme\n";
-   $tabr .= "Scheme: $scheme\n";
-#>>>>>>> c3b2e4ad01aa91636944bd2de958d31e32a68122:pMLST-1.4.pl
-	#$txtresults .= "Sequence Type: ".$st."\n";
+   $txtresults .= "pMLST Profile: ".@{$resultsAndSettingsArray}[2]."\n";
+	
 	if ($stwarning == 1 and $st ne "Unknown ST") {
 	   $txtresults .= "Sequence Type: Unknown ST\n";
 	   $txtresults .= "Closest match: $st\n";
@@ -1034,13 +1030,9 @@ sub print_txt_results{
 	   $tabr .= "Closest match: $st\n";
 	}
 	else {
-#<<<<<<< HEAD:pmlst.pl
-	#   $txtresults .= "Sequence Type: ".$st."\n";
-	#	$tabr .= "Sequence Type: ".$st."\n";
-#=======
-	   $txtresults .= "Sequence Type: $st\n";
-      $tabr .= "Sequence Type: $st\n";
-#>>>>>>> c3b2e4ad01aa91636944bd2de958d31e32a68122:pMLST-1.4.pl
+		$txtresults .= "Sequence Type: ".$st."\n";
+		$tabr .= "Sequence Type: ".$st."\n";
+
 	} 
 	#$txtresults .= "pMLST Profile: ".@{$resultsAndSettingsArray}[2]."\n\n";
 
