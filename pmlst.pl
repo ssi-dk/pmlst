@@ -1094,9 +1094,10 @@ sub print_txt_results{
 	if( $txtwarning == 1 ){
 	   $txtresults .= "* Please note that one or more loci do not match perfectly to any previously\n".
 		               "registered pMLST allele. We recommend verifying the results by traditional\n".
-						  	"methods for pMLST!\n\n\nExtended Output:\n".
-							"--------------------------------------------------------------------------------\n\n";
+						  	"methods for pMLST!\n";
 	}
+	$txtresults .= "\n\nExtended Output:\n".
+						"--------------------------------------------------------------------------------\n\n";
 	
 	# PRINTING THE EXTENDED OUTPUT
 	foreach my $key (sort { if(lc($a) eq 'fii'){return -1;}else{return lc($a) cmp lc($b);}} (keys %{$geneResultsHash})) {
