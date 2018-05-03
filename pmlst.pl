@@ -1121,9 +1121,9 @@ sub print_txt_results{
 
     #if (! $Conservative_match || (($identity > 85) && ($hspLen / $allLen > 0.66)) ){
 	 if (($identity > 85) && ($allLen > 0 and $hspLen / $allLen > 0.66) ){
-      $txtresults .= $outStr."ID: ".$identity."%, HSP/Length: ".$hspLen."/".$allLen.", Gaps: ".$gaps.", Best match: ".$matchAll."\n\n";
+      $txtresults .= $outStr."ID: $identity%, Alignment Length: $hspLen, Allele Length: $allLen, Gaps: $gaps, Best match: $matchAll \n\n";
       $allelealign .= ">".$matchAll."\n";
-      $hits .= ">".$outStr."ID: ".$identity."%, HSP/Length: ".$hspLen."/".$allLen.", Pos: ".$qStart."..".$qend.", Gaps: ".$gaps.", Best match: ".$matchAll."\n";
+      $hits .= ">".$outStr."ID: $identity%, Alignment Length: $hspLen, Allele Length: $allLen, Pos: $qStart..$qend, Gaps: $gaps, Best match: $matchAll\n";
       #now print the alleles
       my $queryArray = ${$geneAlignQueryHash}{$key};
       my $homoArray = ${$geneAlignHomoHash}{$key};
