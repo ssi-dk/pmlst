@@ -14,6 +14,7 @@ version of the pMLST service. The method enables investigators to determine the 
 1. pmlst.py     - the program
 2. README.md
 3. Dockerfile   - dockerfile for building the pmlst docker container
+4. test.fsa     - test fasta file
 
 
 ## Installation
