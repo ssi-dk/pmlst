@@ -1,148 +1,90 @@
-===================
 pMLST
 ===================
 
-This project documents pMLST service
+Plasmid Multi-Locus Sequence Typing
 
 
 Documentation
 =============
 
-## What is it?
-
-The pMLST service contains one perl script *pmlst.pl* which is the script of the lates
+The pMLST service contains one python script *pmlst.py* which is the script of the latest
 version of the pMLST service. The method enables investigators to determine the ST based on WGS data.
 
 ## Content of the repository
-1. pmlst.pl     - the program
-2. INSTALL_DB   - shell script for downloading the MLST database
-3. UPDATE_DB    - shell script for updating the database to the newest version
-4. VALIDATE_DB  - python script for verifying the database contains all
-                  required files 
-5. brew.sh      - shell script for installing dependencies
-6. makefile     - make script for installing dependencies
-7. test.fsa     - test fasta file
+1. pmlst.py     - the program
+2. test     	- test folder
+3. README.md
+4. Dockerfile   - dockerfile for building the pmlst docker container
+
 
 ## Installation
 
-Setting up pMLST
+Setting up pMLST program
 ```bash
-# Go to wanted location for resfinder
+# Go to wanted location for pmlst
 cd /path/to/some/dir
-# Clone and enter the mlst directory
+# Clone and enter the pmlst directory
 git clone https://bitbucket.org/genomicepidemiology/pmlst.git
-cd mlst
+cd pmlst
 ```
 
-Installing up the pMLST database
+Build Docker container
 ```bash
-cd /path/to/mlst
-./INSTALL_DB database
-
-# Check all DB scripts works, and validate the database is correct
-./UPDATE_DB database
-./VALIDATE_DB database
+# Build container
+docker build -t pmlst .
+# Run test
+docker run --rm -it \
+       --entrypoint=/test/test.sh pmlst
 ```
 
-Installing dependencies:
-
-Perlbrew is used to manage isolated perl environments. To install it run:
+#Download and install pMLST database
 ```bash
-bash brew.sh
+# Go to the directory where you want to store the pmlst database
+cd /path/to/some/dir
+# Clone database from git repository (develop branch)
+git clone https://bitbucket.org/genomicepidemiology/pmlst_db.git
+cd pmlst_db
+pMLST_DB=$(pwd)
+# Install pMLST database with executable kma_index program
+python3 INSTALL.py kma_index
 ```
 
-This will installed Perl 5.23 in the Home folder, along with CPAN minus as package manager.
-Blast will also be installed when running brew.sh if BlastAll and FormatDB are not already installed and place in the user's path.
-After running brew.sh and installing Blast add this command to the end of your ~/bash_profile to add BlastAll and FormatDB to the user's path
+If kma_index has not bin install please install kma_index from the kma repository:
+https://bitbucket.org/genomicepidemiology/kma
 
-```bash
-export PATH=$PATH:blast-2.2.26/bin
-```
-
-If you want to download the two external tools from the Blast package, BlastAll and FormatDB, yourself go to
-```url
-ftp://ftp.ncbi.nlm.nih.gov/blast/executables/release/LATEST
-```
-
-and download the version for your OS with the format:
-```url
-blast-version-architecture-OS.tar.gz
-```
-
-after unzipping the file, add this command to the end of your ~/bash_profile.
-```bash
-export PATH=$PATH:/path/to/blast-folder/bin
-```
-
-where path/to/blast-folder is the folder you unzipped.
-
-At last pMLST has several Perl dependencies. To install them (this requires CPAN minus as package manager):
-```bash
-make install
-```
-
-The scripts are self contained. You just have to copy them to where they should
-be used. Only the *database* folder needs to be updated mannually.
-
-Remember to add the program to your system path if you want to be able to invoke the program without calling the full path.
-If you don't do that you have to write the full path to the program when using it.
-
-## Usage 
+## Usage
 
 The program can be invoked with the -h option to get help and more information of the service.
+Run Docker container
+
 
 ```bash
-Usage: perl pmlst.pl [options]
-
-Options:
-
-    -h HELP
-                    Prints a message with options and information to the screen
-    -d DATABASE
-                    The path to where you have located the database folder
-    -b BLAST
-                    The path to the location of blast-2.2.26 if it is not added
-                    to the users path (see the install guide in 'README.md')
-    -i INFILE
-                    Your input file which needs to be preassembled partial
-                    or complete genomes in fasta format
-    -o OUTFOLDER
-                    The folder you want to have your output files places.
-                    If not specified the program will create a folder named
-                    'Output' in which the result files will be stored.
-    -s SPECIES
-                    The pMLST scheme you want to use. The options can be found in
-                    the 'config' file in the database folder
+# Run pmlst container
+docker run --rm -it \
+       -v $pMLST_DB:/database \
+       -v $(pwd):/workdir \
+       pmlst -i [INPUTFILE] -o . -s [SCHEME] [-x] [-mp] [-p] [-t]
 ```
 
-#### Example of use with the *database* folder located in the current directory and Blast added to the user's path
-```perl
-    perl pmlst.pl -i test.fsa -o OUTFOLDER -s incf 
-```
-#### Example of use with the *database* and *blast-2.2.26* folders loacted in other directories
-```perl
-    perl pmlst.pl -d path/to/database -b path/to/blast-2.2.26 -i test.fsa \
-    -o OUTFOLDER -s incf
-```
+When running the docker file you have to mount 2 directory: 
+ 1. pmlst_db (pMLST database) downloaded from bitbucket
+ 2. An output/input folder from where the input file can be reached and an output files can be saved. 
+Here we mount the current working directory (using $pwd) and use this as the output directory, 
+the input file should be reachable from this directory as well.
+ 
+-i INPUTFILE	input file (fasta or fastq) relative to pwd 
+-s SCHEME 	pMLST scheme to be used, details are in config file
+-o OUTDIR	outpur directory relative to pwd
+-x 		extended output. Will create an extented output
+-mp METHOD_PATH	Path to executable of the method to be used (kma or blast)
+-p DATABASE	Path to database directory
+-t TMP_DIR	Temporary directory for storage of results from external software.
+
 
 ## Web-server
 
 A webserver implementing the methods is available at the [CGE website](http://www.genomicepidemiology.org/) and can be found here:
 https://cge.cbs.dtu.dk/services/pMLST/
-
-
-## The Latest Version
-
-
-The latest version can be found at
-https://bitbucket.org/genomicepidemiology/pmlst/overview
-
-## Documentation
-
-
-The documentation available as of the date of this release can be found at
-https://bitbucket.org/genomicepidemiology/pmlst/overview.
-
 
 Citation
 =======
