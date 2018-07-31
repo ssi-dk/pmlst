@@ -12,9 +12,9 @@ version of the pMLST service. The method enables investigators to determine the 
 
 ## Content of the repository
 1. pmlst.py     - the program
-2. test     	- test folder
-3. README.md
-4. Dockerfile   - dockerfile for building the pmlst docker container
+2. README.md
+3. Dockerfile   - dockerfile for building the pmlst docker container
+4. test.fsa     - test fasta file
 
 
 ## Installation
@@ -32,9 +32,6 @@ Build Docker container
 ```bash
 # Build container
 docker build -t pmlst .
-# Run test
-docker run --rm -it \
-       --entrypoint=/test/test.sh pmlst
 ```
 
 #Download and install pMLST database
