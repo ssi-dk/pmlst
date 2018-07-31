@@ -342,23 +342,6 @@ db_path = "{}/".format(database, scheme)
 
 config_file = open(database + "/config","r")
 
-############# DELETE ###############
-
-# Get loci list from allele profile file.
-#scheme_list = []
-#for line in config_file:
-#    if line.startswith("#"):
-#        continue
-#    line = line.split("\t")
-#    scheme_list.append(line[0])
-#    if line[0] == scheme:
-#        organism = line[1]
-#        loci_list = line[2].strip().split(",")
-#if scheme not in scheme_list:
-#    sys.exit("{}, is not a valid scheme. \n\nPlease choose a scheme available in the database:\n{}".format(scheme, ", ".join(scheme_list)))
-
-############# DELETE ###############
-
 # Get profile_name from config file
 scheme_list = []
 for line in config_file:
@@ -378,12 +361,6 @@ if scheme not in scheme_list:
 with open("{0}/{1}.txt.clean".format(database, scheme), "r") as st_file:
     file_header = st_file.readline().strip().split("\t")
     loci_list = file_header[1:]
-
-######################################
-print(scheme_list)
-print(loci_list)
-print(profile_name)
-#######################################
 
 # Call appropriate method (kma or blastn) based on file format 
 if file_format == "fastq":
