@@ -570,7 +570,7 @@ if extented_output:
     result_file = open(result_filename, "w")
 
     # Make results file
-    result_file.write("{0} Results\n\n{0} Profile: {1}\n\n".format(service, scheme))
+    result_file.write("{0} Results\n\n".format(service))
     result_file.write("pMLST profile: {}\n\nSequence Type: {}\n".format(profile_name, st))
     # If ST is unknown report nearest ST
     if st == "Unknown" and nearest_sts != "":
