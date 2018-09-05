@@ -411,10 +411,12 @@ homol_aligns = method_obj.gene_align_homo
 sbjct_aligns = method_obj.gene_align_sbjct
 
 # Check that the results dict is not empty
+warning = ""
 if results[scheme] == "No hit found":
-    sys.exit("None of the pMLST loci was found in the input data. \
-              Make sure that the correct pMLST scheme was chosen, \
-              or check the quality of the sequencing/assembled data.")
+    results[scheme] = {}
+    warning = ("No MLST loci was found in the input data, "
+               "make sure that the correct pMLST scheme was chosen.")
+
 
 allele_matches = {}
 
@@ -492,6 +494,10 @@ st_profiles = import_profile(database, scheme,loci_list)
 
 # Find st or neatest sts
 st, note, nearest_sts = st_typing(st_profiles, allele_matches, loci_list)
+
+# Give warning of mlst schene if no loci were found
+if note == "" and warning != "":
+    note = warning
 
 # Set ST for incF
 if scheme.lower() == "incf":
