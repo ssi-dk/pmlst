@@ -425,7 +425,7 @@ for hit, locus_hit in results[scheme].items():
 
     # Get allele number for locus
     allele_name = locus_hit["sbjct_header"]
-    allele_obj  = re.search("(\w+)[_|-](\d+$)", allele_name)
+    allele_obj  = re.search("(\w+)[_|-](\w+$)", allele_name)
 
     # Get variable to later storage in the results dict
     locus     = allele_obj.group(1)
