@@ -503,17 +503,17 @@ if note == "" and warning != "":
 if scheme.lower() == "incf":
     st = []
     if "FII" in allele_matches and allele_matches["FII"]["identity"] == 100.0:
-        st.append("F"+allele_matches["FIA"]["allele_name"][-1])
+        st.append("F"+allele_matches["FII"]["allele_name"].split("_")[-1])
     else:
         st.append("?")
 
     if "FIA" in allele_matches and allele_matches["FIA"]["identity"] == 100.0:
-        st.append("A"+allele_matches["FIA"]["allele_name"][-1])
+        st.append("A"+allele_matches["FIA"]["allele_name"].split("_")[-1])
     else:
         st.append("?")
 
     if "FIB" in allele_matches and allele_matches["FIB"]["identity"] == 100.0:
-        st.append("B"+allele_matches["FIB"]["allele_name"][-1])
+        st.append("B"+allele_matches["FIB"]["allele_name"].split("_")[-1])
     else:
         st.append("?")
   
