@@ -402,6 +402,7 @@ elif file_format == "fasta":
     # Call BLASTn
     method_obj = Blaster(infile, [scheme], db_path, tmp_dir, 
                          min_cov, threshold, method_path, cut_off=False)
+                         #allewed_overlap=50)
 else:
     sys.exit("Input file must be fastq or fasta format, not "+ file_format)
 
@@ -501,26 +502,32 @@ if note == "" and warning != "":
 
 # Set ST for incF
 if scheme.lower() == "incf":
-    st = []
+    st = ["F","A", "B"]
     if "FII" in allele_matches and allele_matches["FII"]["identity"] == 100.0:
-        st.append("F"+allele_matches["FII"]["allele_name"].split("_")[-1])
+        st[0] += allele_matches["FII"]["allele_name"].split("_")[-1]
+    elif "FIC" in allele_matches and allele_matches["FIC"]["identity"] == 100.0:
+        st[0] = "C" + allele_matches["FIC"]["allele_name"].split("_")[-1]
+    elif "FIIK" in allele_matches and allele_matches["FIIK"]["identity"] == 100.0:
+        st[0] = "K" + allele_matches["FIIK"]["allele_name"].split("_")[-1]
+    elif "FIIS" in allele_matches and allele_matches["FIIS"]["identity"] == 100.0:
+        st[0] = "S" + allele_matches["FIIS"]["allele_name"].split("_")[-1]
+    elif "FIIY" in allele_matches and allele_matches["FIIY"]["identity"] == 100.0:
+        st[0] = "Y" + allele_matches["FIIY"]["allele_name"].split("_")[-1]
     else:
-        st.append("?")
+        st[0] += "-"
 
     if "FIA" in allele_matches and allele_matches["FIA"]["identity"] == 100.0:
-        st.append("A"+allele_matches["FIA"]["allele_name"].split("_")[-1])
+        st[1] += allele_matches["FIA"]["allele_name"].split("_")[-1]
     else:
-        st.append("?")
+        st[1] += "-"
 
     if "FIB" in allele_matches and allele_matches["FIB"]["identity"] == 100.0:
-        st.append("B"+allele_matches["FIB"]["allele_name"].split("_")[-1])
+        st[2] += allele_matches["FIB"]["allele_name"].split("_")[-1]
     else:
-        st.append("?")
+        st[2] += "-"
   
     st = "["+":".join(st)+"]"
 
-    if st == "[?:?:?]":
-        st = "Unknown"
 
 # Check if ST is associated with a clonal complex.
 clpx = ""
@@ -660,7 +667,6 @@ if extented_output:
                 sbjct_file.write(header)
                 for i in range(0,len(sbjct_seq),60):
                     sbjct_file.write(sbjct_seq[i:i+60] + "\n")
-            
 
     # Write Allele profile results tables in results file and table file
     rows.sort(key=lambda x: x[0])
