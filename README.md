@@ -69,13 +69,19 @@ When running the docker file you have to mount 2 directory:
 Here we mount the current working directory (using $pwd) and use this as the output directory, 
 the input file should be reachable from this directory as well.
  
--i INPUTFILE	input file (fasta or fastq) relative to pwd 
--s SCHEME 	pMLST scheme to be used, details are in config file
--o OUTDIR	outpur directory relative to pwd
--x 		extended output. Will create an extented output
--mp METHOD_PATH	Path to executable of the method to be used (kma or blast)
--p DATABASE	Path to database directory
--t TMP_DIR	Temporary directory for storage of results from external software.
+` -i INPUTFILE	input file (fasta or fastq) relative to pwd `
+
+` -s SCHEME 	pMLST scheme to be used, details are in config file `
+
+` -o OUTDIR	outpur directory relative to pwd `
+
+` -x 		extended output. Will create an extented output `
+
+` -mp METHOD_PATH	Path to executable of the method to be used (kma or blast)`
+
+` -p DATABASE	Path to database directory `
+
+` -t TMP_DIR	Temporary directory for storage of results from external software. `
 
 
 ## Web-server
