@@ -3,7 +3,6 @@
 import os, sys, re, time, pprint, io, shutil
 import argparse, subprocess
 
-from cgecore.alignment import extended_cigar
 from cgecore.blaster.blaster import Blaster
 from cgecore.cgefinder import CGEFinder
 import json, gzip
@@ -187,7 +186,7 @@ def st_typing(st_profiles, allele_matches, loci_list):
     max_count = 0
     best_hit = ""
     for hit in st_hits:
-        if hit is not "None":
+        if hit != "None":
             if hit in st_hits_counter:
                 st_hits_counter[hit] += 1
             else:
@@ -293,7 +292,7 @@ parser.add_argument("-o", "--outdir",
 parser.add_argument("-s", "--scheme",
                     help="scheme database used for pMLST prediction", required=True)
 parser.add_argument("-p", "--database",
-                    help="Directory containing the databases.", default="/database")
+                    help="Directory containing the databases.")
 parser.add_argument("-t", "--tmp_dir",
                     help="Temporary directory for storage of the results\
                           from the external software.",
@@ -326,7 +325,12 @@ infile = args.infile
 # Check that outdir is an existing dir...
 outdir = os.path.abspath(args.outdir)
 scheme = args.scheme
-database = os.path.abspath(args.database)
+if args.database:
+    database = os.path.abspath(args.database)
+else:
+    database = os.getenv('PMLST_DB')
+### IF NEITHER IS PROVIDED, SCRIPT SHOULD GIVE ERROR MESSAGE HOW TO SET UP DB
+
 tmp_dir = os.path.abspath(args.tmp_dir)
 # Check if method path is executable
 method_path = args.method_path
@@ -406,6 +410,80 @@ elif file_format == "fasta":
 else:
     sys.exit("Input file must be fastq or fasta format, not "+ file_format)
 
+
+### Moved function from alignment.py because it was changed in 2.0.0
+def extended_cigar(aligned_template, aligned_query):
+   ''' Convert mutation annotations to extended cigar format
+   
+   https://github.com/lh3/minimap2#the-cs-optional-tag
+   
+   USAGE:
+      >>> template = 'CGATCGATAAATAGAGTAG---GAATAGCA'
+      >>> query = 'CGATCG---AATAGAGTAGGTCGAATtGCA'
+      >>> extended_cigar(template, query) == ':6-ata:10+gtc:4*at:3'
+      True
+   '''
+   #   - Go through each position in the alignment
+   insertion = []
+   deletion = []
+   matches = []
+   cigar = []
+   for r_aa, q_aa in zip(aligned_template.lower(), aligned_query.lower()):
+      gap_ref = r_aa == '-'
+      gap_que = q_aa == '-'
+      match = r_aa == q_aa
+      if matches and not match:
+         # End match block
+         cigar.append(":%s"%len(matches))
+         matches = []
+      if insertion and not gap_ref:
+         # End insertion
+         cigar.append("+%s"%''.join(insertion))
+         insertion = []
+      elif deletion and not gap_que:
+         # End deletion
+         cigar.append("-%s"%''.join(deletion))
+         deletion = []
+      if gap_ref:
+         if insertion:
+            # Extend insertion
+            insertion.append(q_aa)
+         else:
+            # Start insertion
+            insertion = [q_aa]
+      elif gap_que:
+         if deletion:
+            # Extend deletion
+            deletion.append(r_aa)
+         else:
+            # Start deletion
+            deletion = [r_aa]
+      elif match:
+         if matches:
+            # Extend match block
+            matches.append(r_aa)
+         else:
+            # Start match block
+            matches = [r_aa]
+      else:
+         # Add SNP annotation
+         cigar.append("*%s%s"%(r_aa, q_aa))
+   
+   if matches:
+      cigar.append(":%s"%len(matches))
+      del matches
+   if insertion:
+      # End insertion
+      cigar.append("+%s"%''.join(insertion))
+      del insertion
+   elif deletion:
+      # End deletion
+      cigar.append("-%s"%''.join(deletion))
+      del deletion
+   
+   return ''.join(cigar)
+#################################################
+
 results      = method_obj.results
 query_aligns = method_obj.gene_align_query
 homol_aligns = method_obj.gene_align_homo
@@ -426,7 +504,7 @@ for hit, locus_hit in results[scheme].items():
 
     # Get allele number for locus
     allele_name = locus_hit["sbjct_header"]
-    allele_obj  = re.search("(\w+)[_|-](\w+$)", allele_name)
+    allele_obj  = re.search(r"(\w+)[_|-](\w+$)", allele_name)
 
     # Get variable to later storage in the results dict
     locus     = allele_obj.group(1)
