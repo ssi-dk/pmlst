@@ -280,6 +280,8 @@ def text_table(headers, rows, empty_replace='-'):
    table = ("%s\n"*3)%('*'*(width+2), '\n'.join(table), '='*(width+2))
    return table
 
+def plasmidfinder_parsing(pf_results):
+    pass
 
 parser = argparse.ArgumentParser(description="")
 # Arguments
@@ -289,8 +291,11 @@ parser.add_argument("-i", "--infile",
 parser.add_argument("-o", "--outdir",
                     help="Output directory.",
                     default=".")
-parser.add_argument("-s", "--scheme",
-                    help="scheme database used for pMLST prediction", required=True)
+group = parser.add_mutually_exclusive_group(required=True)
+group.add_argument("-s", "--scheme",
+                   help="scheme database used for pMLST prediction")
+group.add_argument("-pf", "--pf_results",
+                   help="Path to precomputed PlasmidFinder results")
 parser.add_argument("-p", "--database",
                     help="Directory containing the databases.")
 parser.add_argument("-t", "--tmp_dir",
@@ -324,12 +329,23 @@ if args.quiet:
 infile = args.infile
 # Check that outdir is an existing dir...
 outdir = os.path.abspath(args.outdir)
-scheme = args.scheme
+
+if args.pf_results:
+    scheme = plasmidfinder_parsing(args.pf_results)
+else:
+    scheme = args.scheme
+
 if args.database:
     database = os.path.abspath(args.database)
 else:
     database = os.getenv('PMLST_DB')
-### IF NEITHER IS PROVIDED, SCRIPT SHOULD GIVE ERROR MESSAGE HOW TO SET UP DB
+
+if not database:
+    sys.exit("No database provided, please provide a path to the database with the -p flag.")
+else:
+    if not os.path.exists(database + "/config"):
+        sys.exit("Database path provided is missing a config file, please provide a valid database path.")
+###todo: provide a message about the database installation
 
 tmp_dir = os.path.abspath(args.tmp_dir)
 # Check if method path is executable
@@ -360,6 +376,7 @@ config_file.close()
         
 if scheme not in scheme_list:
     sys.exit("{}, is not a valid scheme. \n\nPlease choose a scheme available in the database:\n{}".format(scheme, ", ".join(scheme_list)))
+
 
 # Get loci list from allele profile file
 with open("{0}/{1}.txt.clean".format(database, scheme), "r") as st_file:
