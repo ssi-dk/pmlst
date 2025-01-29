@@ -322,13 +322,18 @@ if args.quiet:
     f = open(os.devnull, 'w')
     sys.stdout = f
 
+infile = args.infile
+for file in infile:
+    if not os.path.exists(file):
+        sys.exit("Input file does not exist: {}".format(file))
 
 #TODO what are the clonal complex data used for??
 
 # TODO error handling
-infile = args.infile
-# Check that outdir is an existing dir...
+
 outdir = os.path.abspath(args.outdir)
+if not os.path.exists(outdir):
+    sys.exit("Output folder does not exist: {}".format(outdir))
 
 if args.pf_results:
     scheme = plasmidfinder_parsing(args.pf_results)
@@ -347,6 +352,23 @@ else:
         sys.exit("Database path provided is missing a config file, please provide a valid database path.")
 ###todo: provide a message about the database installation
 
+config_file = open(database + "/config","r")
+# Get profile_name from config file
+scheme_list = ["all"]
+for line in config_file:
+    if line.startswith("#"):
+        continue
+    line = line.split("\t")
+    scheme_list.append(line[0])
+    if line[0] == scheme:
+        profile_name = line[1]
+
+config_file.close()
+        
+if scheme not in scheme_list:
+    sys.exit("{}, is not a valid scheme. \n\nPlease choose a scheme available in the database:\n{}".format(scheme, ", ".join(scheme_list)))
+
+
 tmp_dir = os.path.abspath(args.tmp_dir)
 # Check if method path is executable
 method_path = args.method_path
@@ -360,22 +382,7 @@ file_format = get_file_format(infile)
 
 db_path = "{}/".format(database, scheme)
 
-config_file = open(database + "/config","r")
 
-# Get profile_name from config file
-scheme_list = []
-for line in config_file:
-    if line.startswith("#"):
-        continue
-    line = line.split("\t")
-    scheme_list.append(line[0])
-    if line[0] == scheme:
-        profile_name = line[1]
-
-config_file.close()
-        
-if scheme not in scheme_list:
-    sys.exit("{}, is not a valid scheme. \n\nPlease choose a scheme available in the database:\n{}".format(scheme, ", ".join(scheme_list)))
 
 
 # Get loci list from allele profile file
