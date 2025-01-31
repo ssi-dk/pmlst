@@ -280,8 +280,49 @@ def text_table(headers, rows, empty_replace='-'):
    table = ("%s\n"*3)%('*'*(width+2), '\n'.join(table), '='*(width+2))
    return table
 
-def plasmidfinder_parsing(pf_results):
-    pass
+def load_scheme_list_config(scheme_list, database):
+    config_file = open(database + "/config","r")
+
+    for line in config_file:
+        if line.startswith("#"):
+            continue
+        line = line.split("\t")
+        scheme_list[line[0]] = line[1]
+
+    config_file.close()
+    return(scheme_list)
+
+def plasmidfinder_parsing(pf_results, scheme_list):
+    if not os.path.exists(pf_results):
+        sys.exit("PlasmidFinder path provided does not exist, please provide a valid database path.")
+    else:
+        with open(pf_results, 'r') as file:
+            data = file.read()
+        
+        # Split the header and check if it contains the expected columns
+        header = data.split('\n')[0].split('\t')
+        expected_columns = ["Database", "Plasmid", "Identity", "Contig"]
+        if not all(column in header for column in expected_columns):
+            sys.exit("PlasmidFinder results file does not contain the expected columns.")
+        # Check if there are any rows besides header in the file
+        if len(data.split('\n')) < 3:
+            sys.exit("PlasmidFinder results file does not contain any data, only header.")
+        list_of_plasmids = []
+        for line in data.split('\n')[1:]:
+            if line:
+                line = line.split('\t')
+                list_of_plasmids.append(line[1])
+        
+        ###TODO: check pbssb1-family, shigella
+        schemes_to_run = []
+        profile_names_to_run = []
+        for each_scheme in list(scheme_list.keys()):
+            for plasmid in list_of_plasmids:
+                if plasmid.lower().startswith(each_scheme):
+                    schemes_to_run.append(each_scheme)
+                    profile_names_to_run.append(plasmid)
+        
+        return(schemes_to_run, profile_names_to_run)
 
 parser = argparse.ArgumentParser(description="")
 # Arguments
@@ -302,6 +343,10 @@ parser.add_argument("-t", "--tmp_dir",
                     help="Temporary directory for storage of the results\
                           from the external software.",
                     default="tmp_pMLST")
+parser.add_argument("-c", "--coverage",
+                    help="Minimum template coverage threshold", type=float, default=0.6)
+parser.add_argument("-id", "--identity",
+                    help="Minimum template identity threshold", type=float, default=0.95)
 parser.add_argument("-mp", "--method_path",
                     help="Path to the method to use (kma or blastn)\
                           if assembled contigs are inputted the path to executable blastn should be given,\
@@ -311,11 +356,6 @@ parser.add_argument("-x", "--extented_output",
                           a tab seperated file with allele profile results", action="store_true")
 parser.add_argument("-q", "--quiet", action="store_true")
 
-
-#parser.add_argument("-c", "--coverage",
-#                    help="Minimum template coverage required", default = 0.6)
-#parser.add_argument("-i", "--identity",
-#                    help="Minimum template identity required", default = 0.9)
 args = parser.parse_args()
 
 if args.quiet:
@@ -329,16 +369,9 @@ for file in infile:
 
 #TODO what are the clonal complex data used for??
 
-# TODO error handling
-
 outdir = os.path.abspath(args.outdir)
 if not os.path.exists(outdir):
     sys.exit("Output folder does not exist: {}".format(outdir))
-
-if args.pf_results:
-    scheme = plasmidfinder_parsing(args.pf_results)
-else:
-    scheme = args.scheme
 
 if args.database:
     database = os.path.abspath(args.database)
@@ -352,38 +385,51 @@ else:
         sys.exit("Database path provided is missing a config file, please provide a valid database path.")
 ###todo: provide a message about the database installation
 
-config_file = open(database + "/config","r")
+scheme_list = {}
+scheme_list = load_scheme_list_config(scheme_list, database)
+
+schemes_to_run = []
+profile_names_to_run = []
+if args.pf_results:
+    schemes_to_run, profile_names_to_run = plasmidfinder_parsing(args.pf_results, scheme_list)
+elif args.scheme == "all":
+    schemes_to_run = list(scheme_list.keys())
+    profile_names_to_run = list(scheme_list.values())
+elif (args.scheme and args.scheme != "all"):
+    for each_scheme in args.scheme.split(","):
+        if each_scheme in scheme_list.keys():
+            schemes_to_run.append(each_scheme)
+            profile_names_to_run.append((scheme_list[each_scheme]))
+        else:
+            sys.exit("{}, is not a valid scheme. \n\nPlease choose a scheme available in the database:\n{}".format(args.scheme, ", ".join(scheme_list)))
+else:
+    sys.exit("No schemes provided, please provide a scheme to run pMLST on with -s flag.")
+
 # Get profile_name from config file
-scheme_list = ["all"]
-for line in config_file:
-    if line.startswith("#"):
-        continue
-    line = line.split("\t")
-    scheme_list.append(line[0])
-    if line[0] == scheme:
-        profile_name = line[1]
+scheme = schemes_to_run[0]
+profile_name = profile_names_to_run[0]
 
-config_file.close()
-        
-if scheme not in scheme_list:
-    sys.exit("{}, is not a valid scheme. \n\nPlease choose a scheme available in the database:\n{}".format(scheme, ", ".join(scheme_list)))
-
+#print(scheme)
+#print(profile_name)
 
 tmp_dir = os.path.abspath(args.tmp_dir)
 # Check if method path is executable
 method_path = args.method_path
 extented_output = args.extented_output
 
-min_cov = 0.6	   # args.coverage
-threshold = 0.95 # args.identity
+if 0 <= args.coverage <= 1:
+    min_cov = args.coverage
+else:
+    sys.exit("Coverage threshold must be between 0 and 1.")
+if 0 <= args.identity <= 1:
+    threshold = args.identity
+else:
+    sys.exit("Identity threshold must be between 0 and 1.")
 
 # Check file format (fasta, fastq or other format)
 file_format = get_file_format(infile)
 
 db_path = "{}/".format(database, scheme)
-
-
-
 
 # Get loci list from allele profile file
 with open("{0}/{1}.txt.clean".format(database, scheme), "r") as st_file:
