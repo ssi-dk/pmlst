@@ -354,6 +354,8 @@ parser.add_argument("-mp", "--method_path",
 parser.add_argument("-x", "--extented_output",
                     help="Give extented output with allignment files, template and query hits in fasta and\
                           a tab seperated file with allele profile results", action="store_true")
+parser.add_argument("-xm", "--extented_output_with_scheme",
+                    help="Similar to -x (--extended_output) but it adds specific scheme name to the start of the file name when multiple schemes are selected", action="store_true")
 parser.add_argument("-q", "--quiet", action="store_true")
 
 args = parser.parse_args()
@@ -373,17 +375,29 @@ outdir = os.path.abspath(args.outdir)
 if not os.path.exists(outdir):
     sys.exit("Output folder does not exist: {}".format(outdir))
 
+if os.path.exists(os.path.join(os.path.dirname(os.path.abspath(__file__)), 'download-db.sh')):
+    download_script_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'download-db.sh')
+
 if args.database:
-    database = os.path.abspath(args.database)
+    if os.path.exists(args.database):
+        database = os.path.abspath(args.database)
+    elif os.path.exists(download_script_path):
+        sys.exit("Database path provided does not exist, please provide a valid database path or export PMLST_DB environment variable\n\nIf you want to download the database, please run the download-db.sh script.\nRun command:\t sh {}".format(download_script_path))
+    else:
+        sys.exit("Database path provided does not exist, please provide a valid database path or export PMLST_DB environment variable.")
 else:
     database = os.getenv('PMLST_DB')
+    if os.path.exists(database):
+        database = os.path.abspath(database)
+    elif os.path.exists(download_script_path):
+        sys.exit("Database path provided does not exist, please provide a valid database path or export PMLST_DB environment variable\n\nIf you want to download the database, please run the download-db.sh script.\nRun command:\t sh {}".format(download_script_path))
+    else:
+        sys.exit("No database provided, please provide a path to the database with the -p flag or export PMLST_DB environment variable.")
 
-if not database:
-    sys.exit("No database provided, please provide a path to the database with the -p flag.")
-else:
-    if not os.path.exists(database + "/config"):
-        sys.exit("Database path provided is missing a config file, please provide a valid database path.")
+if not os.path.exists(database + "/config"):
+    sys.exit("Database path provided is missing a config file, please provide a valid database path.")
 ###todo: provide a message about the database installation
+# Get the path to the current script
 
 scheme_list = {}
 scheme_list = load_scheme_list_config(scheme_list, database)
@@ -406,16 +420,21 @@ else:
     sys.exit("No schemes provided, please provide a scheme to run pMLST on with -s flag.")
 
 # Get profile_name from config file
-scheme = schemes_to_run[0]
-profile_name = profile_names_to_run[0]
+#scheme = schemes_to_run[0]
+#profile_name = profile_names_to_run[0]
 
-#print(scheme)
-#print(profile_name)
+#print(schemes_to_run)
+#print(profile_names_to_run)
 
 tmp_dir = os.path.abspath(args.tmp_dir)
+
 # Check if method path is executable
 method_path = args.method_path
+if method_path and not shutil.which(method_path):
+    sys.exit("No valid path to a program was provided. Use the -mp flag to provide the path.")
+
 extented_output = args.extented_output
+extented_output_with_scheme = args.extented_output_with_scheme
 
 if 0 <= args.coverage <= 1:
     min_cov = args.coverage
@@ -429,57 +448,64 @@ else:
 # Check file format (fasta, fastq or other format)
 file_format = get_file_format(infile)
 
-db_path = "{}/".format(database, scheme)
 
-# Get loci list from allele profile file
-with open("{0}/{1}.txt.clean".format(database, scheme), "r") as st_file:
-    file_header = st_file.readline().strip().split("\t")
-    loci_list = file_header[1:]
+db_path = "{}/".format(database)
 
-# Call appropriate method (kma or blastn) based on file format 
-if file_format == "fastq":
-    if not method_path:
-        method_path = "kma"
-        if shutil.which(method_path) == None:
-            sys.exit("No valid path to a kma program was provided. Use the -mp flag to provide the path.")
-    # Check the number of files
-    if len(infile) == 1:
+list_of_method_obj = []
+list_of_loci_list = []
+for scheme in schemes_to_run:
+    # Get loci list from allele profile file
+    with open("{0}/{1}.txt.clean".format(database, scheme), "r") as st_file:
+        file_header = st_file.readline().strip().split("\t")
+        list_of_loci_list.append(file_header[1:])
+
+    # Call appropriate method (kma or blastn) based on file format 
+    if file_format == "fastq":
+        if not method_path:
+            method_path = "kma"
+            if shutil.which(method_path) == None:
+                sys.exit("No valid path to a kma program was provided. Use the -mp flag to provide the path.")
+        # Check the number of files
+        if len(infile) == 1:
+            infile_1 = infile[0]
+            infile_2 = None
+        elif len(infile) == 2:
+            infile_1 = infile[0]
+            infile_2 = infile[1]
+        else:
+            sys.exit("Only 2 input file accepted for raw read data,\
+                    if data from more runs is avaliable for the same\
+                    sample, please concatinate the reads into two files")
+        
+        sample_name = get_read_filename(infile)
+        method = "kma"
+
+        # Call KMA
+        method_obj = CGEFinder.kma(infile_1, outdir, [scheme], db_path, min_cov=min_cov,
+                                    threshold=threshold, kma_path=method_path, sample_name=sample_name,
+                                    inputfile_2=infile_2, kma_mrs=0.75, kma_gapopen=-5,
+                                    kma_gapextend=-1, kma_penalty=-3, kma_reward=1)
+        
+        list_of_method_obj.append(method_obj)
+
+    elif file_format == "fasta":
+        if not method_path:
+            method_path = "blastn"
+            if shutil.which(method_path) == None:
+                sys.exit("No valid path to a blastn program was provided. Use the -mp flag to provide the path.")
+        # Assert that only one fasta file is inputted
+        assert len(infile) == 1, "Only one input file accepted for assembled data."
         infile_1 = infile[0]
-        infile_2 = None
-    elif len(infile) == 2:
-        infile_1 = infile[0]
-        infile_2 = infile[1]
+        method = "blast"
+
+        # Call BLASTn
+        method_obj = Blaster(infile_1, [scheme], db_path, tmp_dir, 
+                            min_cov, threshold, method_path, cut_off=False)
+                            #allewed_overlap=50)
+
+        list_of_method_obj.append(method_obj)
     else:
-        sys.exit("Only 2 input file accepted for raw read data,\
-                  if data from more runs is avaliable for the same\
-                  sample, please concatinate the reads into two files")
-    
-    sample_name = get_read_filename(infile)
-    method = "kma"
-
-    # Call KMA
-    method_obj = CGEFinder.kma(infile_1, outdir, [scheme], db_path, min_cov=min_cov,
-                                threshold=threshold, kma_path=method_path, sample_name=sample_name,
-                                inputfile_2=infile_2, kma_mrs=0.75, kma_gapopen=-5,
-                                kma_gapextend=-1, kma_penalty=-3, kma_reward=1)
-
-elif file_format == "fasta":
-    if not method_path:
-        method_path = "blastn"
-        if shutil.which(method_path) == None:
-            sys.exit("No valid path to a blastn program was provided. Use the -mp flag to provide the path.")
-    # Assert that only one fasta file is inputted
-    assert len(infile) == 1, "Only one input file accepted for assembled data."
-    infile = infile[0]
-    method = "blast"
-
-    # Call BLASTn
-    method_obj = Blaster(infile, [scheme], db_path, tmp_dir, 
-                         min_cov, threshold, method_path, cut_off=False)
-                         #allewed_overlap=50)
-else:
-    sys.exit("Input file must be fastq or fasta format, not "+ file_format)
-
+        sys.exit("Input file must be fastq or fasta format, not "+ file_format)
 
 ### Moved function from alignment.py because it was changed in 2.0.0
 def extended_cigar(aligned_template, aligned_query):
@@ -554,286 +580,321 @@ def extended_cigar(aligned_template, aligned_query):
    return ''.join(cigar)
 #################################################
 
-results      = method_obj.results
-query_aligns = method_obj.gene_align_query
-homol_aligns = method_obj.gene_align_homo
-sbjct_aligns = method_obj.gene_align_sbjct
+# Get the results from the method objects
+results_list = []
+query_aligns_list = []
+homol_aligns_list = []
+sbjct_aligns_list = []
+for method_obj in list_of_method_obj:
+    results_list.append(method_obj.results)
+    query_aligns_list.append(method_obj.gene_align_query)
+    homol_aligns_list.append(method_obj.gene_align_homo)
+    sbjct_aligns_list.append(method_obj.gene_align_sbjct)
 
-# Check that the results dict is not empty
-warning = ""
-if results[scheme] == "No hit found":
-    results[scheme] = {}
-    warning = ("No MLST loci was found in the input data, "
-               "make sure that the correct pMLST scheme was chosen.")
+#loci_list = list_of_loci_list[0]
+#profile_name = profile_names_to_run[0]
+#scheme = schemes_to_run[0]
+#results = results_list[0]
+#query_aligns = query_aligns_list[0]
+#homol_aligns = homol_aligns_list[0]
+#sbjct_aligns = sbjct_aligns_list[0]
+
+data = {}
+for i in range(len(schemes_to_run)):
+    scheme = schemes_to_run[i]
+    loci_list = list_of_loci_list[i]
+    profile_name = profile_names_to_run[i]
+    results = results_list[i]
+    query_aligns = query_aligns_list[i]
+    homol_aligns = homol_aligns_list[i]
+    sbjct_aligns = sbjct_aligns_list[i]
+
+    # Check that the results dict is not empty
+    warning = ""
+    if results[scheme] == "No hit found":
+        results[scheme] = {}
+        warning = ("No MLST loci was found in the input data, "
+                "make sure that the correct pMLST scheme was chosen.")
 
 
-allele_matches = {}
+    allele_matches = {}
 
-# Get the found allele profile contained in the results dict
-for hit, locus_hit in results[scheme].items():
+    # Get the found allele profile contained in the results dict
+    for hit, locus_hit in results[scheme].items():
 
-    # Get allele number for locus
-    allele_name = locus_hit["sbjct_header"]
-    allele_obj  = re.search(r"(\w+)[_|-](\w+$)", allele_name)
+        # Get allele number for locus
+        allele_name = locus_hit["sbjct_header"]
+        allele_obj  = re.search(r"(\w+)[_|-](\w+$)", allele_name)
 
-    # Get variable to later storage in the results dict
-    locus     = allele_obj.group(1)
-    allele    = allele_obj.group(2)
-    coverage  = float(locus_hit["perc_coverage"])
-    identity  = float(locus_hit["perc_ident"])
-    score     = float(locus_hit["cal_score"])
-    gaps      = int(locus_hit["gaps"])    
-    align_len = locus_hit["HSP_length"]
-    sbj_len   = int(locus_hit["sbjct_length"])
-    sbjct_seq = locus_hit["sbjct_string"]
-    query_seq = locus_hit["query_string"] 
-    homol_seq = locus_hit["homo_string"]
-    cigar     = extended_cigar(sbjct_aligns[scheme][hit], query_aligns[scheme][hit]) 
+        # Get variable to later storage in the results dict
+        locus     = allele_obj.group(1)
+        allele    = allele_obj.group(2)
+        coverage  = float(locus_hit["perc_coverage"])
+        identity  = float(locus_hit["perc_ident"])
+        score     = float(locus_hit["cal_score"])
+        gaps      = int(locus_hit["gaps"])    
+        align_len = locus_hit["HSP_length"]
+        sbj_len   = int(locus_hit["sbjct_length"])
+        sbjct_seq = locus_hit["sbjct_string"]
+        query_seq = locus_hit["query_string"] 
+        homol_seq = locus_hit["homo_string"]
+        cigar     = extended_cigar(sbjct_aligns[scheme][hit], query_aligns[scheme][hit]) 
 
-    # Check for perfect hits
-    if coverage == 100 and identity == 100:
-        # If a perfect hit was already found the list more_perfect hits will exist this new hit is appended to this list
-        try:
-            allele_matches[locus]["alternative_hit"][allele_name] = {"allele":allele+"!", "align_len":align_len, "sbj_len":sbj_len, 
-                                                                 "coverage":coverage, "identity":identity, "hit_name":hit}
-            if allele_matches[locus]["allele"][-1] != "!":
-                allele_matches[locus]["allele"] += "!"
-        except KeyError:
-            # Overwrite alleles already saved, save the perfect match and break to go to next locus
-            allele_matches[locus] = {"score":score, "allele":allele, "coverage":coverage,
-                                     "identity":identity, "match_priority": 1, "align_len":align_len,
-                                     "gaps":gaps, "sbj_len":sbj_len, "allele_name":allele_name,
-                                     "sbjct_seq":sbjct_seq, "query_seq":query_seq, "homol_seq":homol_seq, 
-                                     "hit_name":hit, "cigar":cigar, "alternative_hit":{}} 
-    else:
-        # If no hit has yet been stored initialize dict variables that are looked up below
+        # Check for perfect hits
+        if coverage == 100 and identity == 100:
+            # If a perfect hit was already found the list more_perfect hits will exist this new hit is appended to this list
+            try:
+                allele_matches[locus]["alternative_hit"][allele_name] = {"allele":allele+"!", "align_len":align_len, "sbj_len":sbj_len, 
+                                                                    "coverage":coverage, "identity":identity, "hit_name":hit}
+                if allele_matches[locus]["allele"][-1] != "!":
+                    allele_matches[locus]["allele"] += "!"
+            except KeyError:
+                # Overwrite alleles already saved, save the perfect match and break to go to next locus
+                allele_matches[locus] = {"score":score, "allele":allele, "coverage":coverage,
+                                        "identity":identity, "match_priority": 1, "align_len":align_len,
+                                        "gaps":gaps, "sbj_len":sbj_len, "allele_name":allele_name,
+                                        "sbjct_seq":sbjct_seq, "query_seq":query_seq, "homol_seq":homol_seq, 
+                                        "hit_name":hit, "cigar":cigar, "alternative_hit":{}} 
+        else:
+            # If no hit has yet been stored initialize dict variables that are looked up below
+            if locus not in allele_matches:
+                allele_matches[locus] = {"score":0, "match_priority": 4}
+
+            # We weight full coverage higher than perfect identity match
+            if coverage == 100 and identity != 100:
+                # Check that better (higher prioritized) 100% coverage hit has not been stored yet
+                if allele_matches[locus]["match_priority"] > 2 or (allele_matches[locus]["match_priority"] == 2 and score > allele_matches[locus]["score"]):
+                    allele_matches[locus] = {"score":score, "allele":allele+"*", "coverage":coverage,
+                                            "identity":identity, "match_priority": 2, "align_len":align_len,
+                                            "gaps":gaps, "sbj_len":sbj_len, "allele_name":allele_name,
+                                            "sbjct_seq":sbjct_seq, "query_seq":query_seq, "homol_seq":homol_seq,
+                                            "hit_name":hit, "cigar":cigar}
+            elif coverage != 100 and identity == 100:
+                # Check that higher prioritized hit was not already stored
+                if allele_matches[locus]["match_priority"] > 3 or (allele_matches[locus]["match_priority"] == 3 and score > allele_matches[locus]["score"]):
+                    allele_matches[locus] = {"score":score, "allele":allele + "?", "coverage":coverage,
+                                            "identity":identity, "match_priority": 3, "align_len":align_len,
+                                            "gaps":gaps, "sbj_len":sbj_len, "allele_name":allele_name,
+                                            "sbjct_seq":sbjct_seq, "query_seq":query_seq, "homol_seq":homol_seq,
+                                            "hit_name":hit, "cigar":cigar}
+            else: # coverage != 100 and identity != 100:
+                if allele_matches[locus]["match_priority"] == 4 and score > allele_matches[locus]["score"]:
+                    allele_matches[locus] = {"score":score, "allele":allele + "?*", "coverage":coverage,
+                                            "identity":identity, "match_priority": 4, "align_len":align_len,
+                                            "gaps":gaps, "sbj_len":sbj_len, "allele_name":allele_name,
+                                            "sbjct_seq":sbjct_seq, "query_seq":query_seq, "homol_seq":homol_seq,
+                                            "hit_name":hit, "cigar":cigar}
+    for locus in loci_list:
         if locus not in allele_matches:
-            allele_matches[locus] = {"score":0, "match_priority": 4}
+            allele_matches[locus] = {"identity":"", "coverage":"", "allele":"", "allele_name":"No hit found", "align_len":"", "gaps":"", "sbj_len":""}
 
-        # We weight full coverage higher than perfect identity match
-        if coverage == 100 and identity != 100:
-            # Check that better (higher prioritized) 100% coverage hit has not been stored yet
-            if allele_matches[locus]["match_priority"] > 2 or (allele_matches[locus]["match_priority"] == 2 and score > allele_matches[locus]["score"]):
-                allele_matches[locus] = {"score":score, "allele":allele+"*", "coverage":coverage,
-                                         "identity":identity, "match_priority": 2, "align_len":align_len,
-                                         "gaps":gaps, "sbj_len":sbj_len, "allele_name":allele_name,
-                                         "sbjct_seq":sbjct_seq, "query_seq":query_seq, "homol_seq":homol_seq,
-                                         "hit_name":hit, "cigar":cigar}
-        elif coverage != 100 and identity == 100:
-            # Check that higher prioritized hit was not already stored
-            if allele_matches[locus]["match_priority"] > 3 or (allele_matches[locus]["match_priority"] == 3 and score > allele_matches[locus]["score"]):
-                allele_matches[locus] = {"score":score, "allele":allele + "?", "coverage":coverage,
-                                         "identity":identity, "match_priority": 3, "align_len":align_len,
-                                         "gaps":gaps, "sbj_len":sbj_len, "allele_name":allele_name,
-                                         "sbjct_seq":sbjct_seq, "query_seq":query_seq, "homol_seq":homol_seq,
-                                         "hit_name":hit, "cigar":cigar}
-        else: # coverage != 100 and identity != 100:
-            if allele_matches[locus]["match_priority"] == 4 and score > allele_matches[locus]["score"]:
-                allele_matches[locus] = {"score":score, "allele":allele + "?*", "coverage":coverage,
-                                         "identity":identity, "match_priority": 4, "align_len":align_len,
-                                         "gaps":gaps, "sbj_len":sbj_len, "allele_name":allele_name,
-                                         "sbjct_seq":sbjct_seq, "query_seq":query_seq, "homol_seq":homol_seq,
-                                         "hit_name":hit, "cigar":cigar}
-for locus in loci_list:
-    if locus not in allele_matches:
-        allele_matches[locus] = {"identity":"", "coverage":"", "allele":"", "allele_name":"No hit found", "align_len":"", "gaps":"", "sbj_len":""}
+    # Import all possible st profiles into dict
+    st_profiles = import_profile(database, scheme,loci_list)
 
-# Import all possible st profiles into dict
-st_profiles = import_profile(database, scheme,loci_list)
+    # Find st or neatest sts
+    st, note, nearest_sts = st_typing(st_profiles, allele_matches, loci_list)
 
-# Find st or neatest sts
-st, note, nearest_sts = st_typing(st_profiles, allele_matches, loci_list)
+    # Give warning of mlst schene if no loci were found
+    if note == "" and warning != "":
+        note = warning
 
-# Give warning of mlst schene if no loci were found
-if note == "" and warning != "":
-    note = warning
+    # Set ST for incF
+    if scheme.lower() == "incf":
+        st = ["F","A", "B"]
+        if "FII" in allele_matches and allele_matches["FII"]["identity"] == 100.0:
+            st[0] += allele_matches["FII"]["allele_name"].split("_")[-1]
+        elif "FIC" in allele_matches and allele_matches["FIC"]["identity"] == 100.0:
+            st[0] = "C" + allele_matches["FIC"]["allele_name"].split("_")[-1]
+        elif "FIIK" in allele_matches and allele_matches["FIIK"]["identity"] == 100.0:
+            st[0] = "K" + allele_matches["FIIK"]["allele_name"].split("_")[-1]
+        elif "FIIS" in allele_matches and allele_matches["FIIS"]["identity"] == 100.0:
+            st[0] = "S" + allele_matches["FIIS"]["allele_name"].split("_")[-1]
+        elif "FIIY" in allele_matches and allele_matches["FIIY"]["identity"] == 100.0:
+            st[0] = "Y" + allele_matches["FIIY"]["allele_name"].split("_")[-1]
+        else:
+            st[0] += "-"
 
-# Set ST for incF
-if scheme.lower() == "incf":
-    st = ["F","A", "B"]
-    if "FII" in allele_matches and allele_matches["FII"]["identity"] == 100.0:
-        st[0] += allele_matches["FII"]["allele_name"].split("_")[-1]
-    elif "FIC" in allele_matches and allele_matches["FIC"]["identity"] == 100.0:
-        st[0] = "C" + allele_matches["FIC"]["allele_name"].split("_")[-1]
-    elif "FIIK" in allele_matches and allele_matches["FIIK"]["identity"] == 100.0:
-        st[0] = "K" + allele_matches["FIIK"]["allele_name"].split("_")[-1]
-    elif "FIIS" in allele_matches and allele_matches["FIIS"]["identity"] == 100.0:
-        st[0] = "S" + allele_matches["FIIS"]["allele_name"].split("_")[-1]
-    elif "FIIY" in allele_matches and allele_matches["FIIY"]["identity"] == 100.0:
-        st[0] = "Y" + allele_matches["FIIY"]["allele_name"].split("_")[-1]
-    else:
-        st[0] += "-"
+        if "FIA" in allele_matches and allele_matches["FIA"]["identity"] == 100.0:
+            st[1] += allele_matches["FIA"]["allele_name"].split("_")[-1]
+        else:
+            st[1] += "-"
 
-    if "FIA" in allele_matches and allele_matches["FIA"]["identity"] == 100.0:
-        st[1] += allele_matches["FIA"]["allele_name"].split("_")[-1]
-    else:
-        st[1] += "-"
-
-    if "FIB" in allele_matches and allele_matches["FIB"]["identity"] == 100.0:
-        st[2] += allele_matches["FIB"]["allele_name"].split("_")[-1]
-    else:
-        st[2] += "-"
-  
-    st = "["+":".join(st)+"]"
-
-
-# Check if ST is associated with a clonal complex.
-clpx = ""
-if st != "Unknown" or nearest_sts != "":
-    with open("{0}/{1}.clpx".format(database,scheme), "r") as clpx_file:
-        for line in clpx_file:
-            line = line.split("\t")
-            if st[0] == line[0] or nearest_sts == line[0]:
-                clpx = line[1].strip()
-
+        if "FIB" in allele_matches and allele_matches["FIB"]["identity"] == 100.0:
+            st[2] += allele_matches["FIB"]["allele_name"].split("_")[-1]
+        else:
+            st[2] += "-"
     
-# Get run info for JSON file
-service = os.path.basename(__file__).replace(".py", "")
-date = time.strftime("%d.%m.%Y")
-time = time.strftime("%H:%M:%S")
+        st = "["+":".join(st)+"]"
 
-# TODO find a system to show the database and service version using git
 
-# Make JSON output file
-data = {service:{}}
-allele_results = {}
-for locus, locus_info in allele_matches.items():
-    allele_results[locus] = {"identity":0, "coverage":0, "allele":[], "allele_name":[], "align_len":[], "gaps":0, "sbj_len":[]}
-    for (key, value) in locus_info.items():
-        if key in allele_results[locus] or (key == "alternative_hit" and value != {}):
-            allele_results[locus][key] = value
- 
-userinput = {"filename":args.infile, "scheme":args.scheme, "profile":profile_name,"file_format":file_format}
-run_info = {"date":date, "time":time}#, "database":{"remote_db":remote_db, "last_commit_hash":head_hash}}
-server_results = {"sequence_type":st, "allele_profile": allele_results,
-                             "nearest_sts":nearest_sts,"clonal_complex":clpx, "notes":note}
+    # Check if ST is associated with a clonal complex.
+    clpx = ""
+    if st != "Unknown" or nearest_sts != "":
+        with open("{0}/{1}.clpx".format(database,scheme), "r") as clpx_file:
+            for line in clpx_file:
+                line = line.split("\t")
+                if st[0] == line[0] or nearest_sts == line[0]:
+                    clpx = line[1].strip()
 
-data[service]["user_input"] = userinput
-data[service]["run_info"] = run_info
-data[service]["results"] = server_results
+        
+    # Get run info for JSON file
+    service = os.path.basename(__file__).replace(".py", "")
+    if i > 0:
+        service += "_{}".format(i)
+    date = time.strftime("%d.%m.%Y")
+    time_in_hours = time.strftime("%H:%M:%S")
 
-pprint.pprint(data)
+    # TODO find a system to show the database and service version using git
+
+    # Make JSON output file
+    
+    data[service] = {}
+    allele_results = {}
+    for locus, locus_info in allele_matches.items():
+        allele_results[locus] = {"identity":0, "coverage":0, "allele":[], "allele_name":[], "align_len":[], "gaps":0, "sbj_len":[]}
+        for (key, value) in locus_info.items():
+            if key in allele_results[locus] or (key == "alternative_hit" and value != {}):
+                allele_results[locus][key] = value
+    
+    userinput = {"filename":args.infile, "scheme":scheme, "profile":profile_name,"file_format":file_format}
+    run_info = {"date":date, "time":time_in_hours}#, "database":{"remote_db":remote_db, "last_commit_hash":head_hash}}
+    server_results = {"sequence_type":st, "allele_profile": allele_results,
+                                "nearest_sts":nearest_sts,"clonal_complex":clpx, "notes":note}
+
+    data[service]["user_input"] = userinput
+    data[service]["run_info"] = run_info
+    data[service]["results"] = server_results
+
+    if extented_output or extented_output_with_scheme:
+        # Define extented output
+        if len(schemes_to_run) > 1 or extented_output_with_scheme:
+            table_filename  = "{}/{}_results_tab.tsv".format(outdir, scheme)
+            query_filename  = "{}/{}_Hit_in_genome_seq.fsa".format(outdir, scheme)
+            sbjct_filename  = "{}/{}_pMLST_allele_seq.fsa".format(outdir, scheme)
+            result_filename = "{}/{}_results.txt".format(outdir, scheme)
+        else:
+            table_filename  = "{}/results_tab.tsv".format(outdir)
+            query_filename  = "{}/Hit_in_genome_seq.fsa".format(outdir)
+            sbjct_filename  = "{}/pMLST_allele_seq.fsa".format(outdir)
+            result_filename = "{}/results.txt".format(outdir)
+
+        table_file  = open(table_filename, "w")
+        query_file  = open(query_filename, "w")
+        sbjct_file  = open(sbjct_filename, "w")
+        result_file = open(result_filename, "w")
+
+        # Make results file
+        result_file.write("{0} Results\n\n".format(service))
+        result_file.write("pMLST profile: {}\n\nSequence Type: {}\n".format(profile_name, st))
+        # If ST is unknown report nearest ST
+        if st == "Unknown" and nearest_sts != "":
+            if len(nearest_sts.split(",")) == 1:
+                result_file.write("Nearest ST: {}\n".format(nearest_sts))
+            else:
+                result_file.write("Nearest STs: {}\n".format(nearest_sts))
+
+        # Report clonal complex if one was associated with ST:
+        if clpx != "":
+            result_file.write("Clonal complex: {}\n".format(clpx))
+
+        # Write tsv table header
+        table_header = ["Locus", "Identity", "Coverage", "Alignment Length", "Allele Length", "Gaps", "Allele"]
+        table_file.write("\t".join(table_header) + "\n")
+        rows = []
+        for locus, allele_info in allele_matches.items():
+
+            identity = str(allele_info["identity"])
+            coverage = str(allele_info["coverage"])
+            allele = allele_info["allele"]
+            allele_name = allele_info["allele_name"]
+            align_len = str(allele_info["align_len"])
+            sbj_len = str(allele_info["sbj_len"])
+            gaps = str(allele_info["gaps"])
+
+            # Write alleles names with indications of imperfect hits
+            if allele_name != "No hit found":
+                allele_name_w_mark = locus + "_" + allele
+            else:
+                allele_name_w_mark = allele_name          
+            
+            # Write allele results to tsv table
+            row = [locus, identity, coverage, align_len, sbj_len, gaps, allele_name_w_mark]
+            rows.append(row)
+            if "alternative_hit" in allele_info:
+                for allele_name, dic in allele_info["alternative_hit"].items():
+                    row = [locus, identity, coverage, str(dic["align_len"]), str(dic["sbj_len"]), "0", allele_name + "!"]
+                    rows.append(row)                
+            #
+
+            if allele_name == "No hit found":
+                continue
+
+            # Write query fasta output
+            hit_name = allele_info["hit_name"]
+            query_seq = query_aligns[scheme][hit_name]
+            sbjct_seq = sbjct_aligns[scheme][hit_name] 
+            homol_seq = homol_aligns[scheme][hit_name]
+
+            if allele_info["match_priority"] == 1:
+                match = "PERFECT MATCH"
+            else:
+                match = "WARNING"
+            header = ">{}:{} ID:{}% COV:{}% Best_match:{}\n".format(locus, match, allele_info["identity"], 
+                                                    allele_info["coverage"], allele_info["allele_name"])
+            query_file.write(header)
+            for i in range(0,len(query_seq),60):
+                query_file.write(query_seq[i:i+60] + "\n")
+
+            # Write template fasta output
+            header = ">{}\n".format(allele_info["allele_name"])
+            sbjct_file.write(header)
+            for i in range(0,len(sbjct_seq),60):
+                sbjct_file.write(sbjct_seq[i:i+60] + "\n")
+
+            if "alternative_hit" in allele_info:
+                for allele_name in allele_info["alternative_hit"]:
+                    header = ">{}:{} ID:{}% COV:{}% Best_match:{}\n".format(locus, "PERFECT MATCH", 100, 
+                                                                            100, allele_name)
+                    hit_name = allele_info["alternative_hit"][allele_name]["hit_name"]
+                    query_seq = query_aligns[scheme][hit_name]
+                    sbjct_seq = sbjct_aligns[scheme][hit_name] 
+                    homol_seq = homol_aligns[scheme][hit_name]
+                    query_file.write(header)
+                    for i in range(0,len(query_seq),60):
+                        query_file.write(query_seq[i:i+60] + "\n")
+
+                    # Write template fasta output
+                    header = ">{}\n".format(allele_name)
+                    sbjct_file.write(header)
+                    for i in range(0,len(sbjct_seq),60):
+                        sbjct_file.write(sbjct_seq[i:i+60] + "\n")
+
+        # Write Allele profile results tables in results file and table file
+        rows.sort(key=lambda x: x[0])
+        result_file.write(text_table(table_header, rows))
+        for row in rows:
+            table_file.write("\t".join(row) + "\n")
+        # Write any notes
+        if note != "":
+            result_file.write("\nNotes: {}\n\n".format(note))
+
+        # Write allignment output
+        result_file.write("\n\nExtended Output:\n\n")
+        make_aln(scheme, result_file, allele_matches, query_aligns, homol_aligns, sbjct_aligns)
+
+        # Close all files
+        query_file.close()
+        sbjct_file.close()
+        table_file.close()
+        result_file.close()
 
 # Save json output
-result_file = "{}/data.json".format(outdir) 
-with open(result_file, "w") as outfile:  
+data_result_file = "{}/data.json".format(outdir) 
+with open(data_result_file, "w") as outfile:  
     json.dump(data, outfile)
+outfile.close()
 
-if extented_output:
-    # Define extented output 
-    table_filename  = "{}/results_tab.tsv".format(outdir)
-    query_filename  = "{}/Hit_in_genome_seq.fsa".format(outdir)
-    sbjct_filename  = "{}/pMLST_allele_seq.fsa".format(outdir)
-    result_filename = "{}/results.txt".format(outdir)
-    table_file  = open(table_filename, "w")
-    query_file  = open(query_filename, "w")
-    sbjct_file  = open(sbjct_filename, "w")
-    result_file = open(result_filename, "w")
-
-    # Make results file
-    result_file.write("{0} Results\n\n".format(service))
-    result_file.write("pMLST profile: {}\n\nSequence Type: {}\n".format(profile_name, st))
-    # If ST is unknown report nearest ST
-    if st == "Unknown" and nearest_sts != "":
-        if len(nearest_sts.split(",")) == 1:
-            result_file.write("Nearest ST: {}\n".format(nearest_sts))
-        else:
-            result_file.write("Nearest STs: {}\n".format(nearest_sts))
-
-    # Report clonal complex if one was associated with ST:
-    if clpx != "":
-        result_file.write("Clonal complex: {}\n".format(clpx))
-
-    # Write tsv table header
-    table_header = ["Locus", "Identity", "Coverage", "Alignment Length", "Allele Length", "Gaps", "Allele"]
-    table_file.write("\t".join(table_header) + "\n")
-    rows = []
-    for locus, allele_info in allele_matches.items():
-
-        identity = str(allele_info["identity"])
-        coverage = str(allele_info["coverage"])
-        allele = allele_info["allele"]
-        allele_name = allele_info["allele_name"]
-        align_len = str(allele_info["align_len"])
-        sbj_len = str(allele_info["sbj_len"])
-        gaps = str(allele_info["gaps"])
-
-        # Write alleles names with indications of imperfect hits
-        if allele_name != "No hit found":
-            allele_name_w_mark = locus + "_" + allele
-        else:
-            allele_name_w_mark = allele_name          
-        
-        # Write allele results to tsv table
-        row = [locus, identity, coverage, align_len, sbj_len, gaps, allele_name_w_mark]
-        rows.append(row)
-        if "alternative_hit" in allele_info:
-            for allele_name, dic in allele_info["alternative_hit"].items():
-                row = [locus, identity, coverage, str(dic["align_len"]), str(dic["sbj_len"]), "0", allele_name + "!"]
-                rows.append(row)                
-        #
-
-        if allele_name == "No hit found":
-            continue
-
-        # Write query fasta output
-        hit_name = allele_info["hit_name"]
-        query_seq = query_aligns[scheme][hit_name]
-        sbjct_seq = sbjct_aligns[scheme][hit_name] 
-        homol_seq = homol_aligns[scheme][hit_name]
-
-        if allele_info["match_priority"] == 1:
-            match = "PERFECT MATCH"
-        else:
-            match = "WARNING"
-        header = ">{}:{} ID:{}% COV:{}% Best_match:{}\n".format(locus, match, allele_info["identity"], 
-                                                  allele_info["coverage"], allele_info["allele_name"])
-        query_file.write(header)
-        for i in range(0,len(query_seq),60):
-            query_file.write(query_seq[i:i+60] + "\n")
-
-        # Write template fasta output
-        header = ">{}\n".format(allele_info["allele_name"])
-        sbjct_file.write(header)
-        for i in range(0,len(sbjct_seq),60):
-            sbjct_file.write(sbjct_seq[i:i+60] + "\n")
-
-        if "alternative_hit" in allele_info:
-            for allele_name in allele_info["alternative_hit"]:
-                header = ">{}:{} ID:{}% COV:{}% Best_match:{}\n".format(locus, "PERFECT MATCH", 100, 
-                                                                        100, allele_name)
-                hit_name = allele_info["alternative_hit"][allele_name]["hit_name"]
-                query_seq = query_aligns[scheme][hit_name]
-                sbjct_seq = sbjct_aligns[scheme][hit_name] 
-                homol_seq = homol_aligns[scheme][hit_name]
-                query_file.write(header)
-                for i in range(0,len(query_seq),60):
-                    query_file.write(query_seq[i:i+60] + "\n")
-
-                # Write template fasta output
-                header = ">{}\n".format(allele_name)
-                sbjct_file.write(header)
-                for i in range(0,len(sbjct_seq),60):
-                    sbjct_file.write(sbjct_seq[i:i+60] + "\n")
-
-    # Write Allele profile results tables in results file and table file
-    rows.sort(key=lambda x: x[0])
-    result_file.write(text_table(table_header, rows))
-    for row in rows:
-        table_file.write("\t".join(row) + "\n")
-    # Write any notes
-    if note != "":
-       result_file.write("\nNotes: {}\n\n".format(note))
-
-    # Write allignment output
-    result_file.write("\n\nExtended Output:\n\n")
-    make_aln(scheme, result_file, allele_matches, query_aligns, homol_aligns, sbjct_aligns)
-
-    # Close all files
-    query_file.close()
-    sbjct_file.close()
-    table_file.close()
-    result_file.close()
+pprint.pprint(data)
 
 if args.quiet:
     f.close()
