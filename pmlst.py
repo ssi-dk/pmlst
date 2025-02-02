@@ -319,10 +319,14 @@ def plasmidfinder_parsing(pf_results, scheme_list):
         for each_scheme in list(scheme_list.keys()):
             for plasmid in list_of_plasmids:
                 if plasmid.lower().startswith(each_scheme):
-                    schemes_to_run.append(each_scheme)
-                    profile_names_to_run.append(plasmid)
+                    if each_scheme not in schemes_to_run:
+                        schemes_to_run.append(each_scheme)
+                        profile_names_to_run.append(plasmid)
+                    else:
+                        index = schemes_to_run.index(each_scheme)
+                        profile_names_to_run[index] += "," + plasmid
         
-        return(schemes_to_run, profile_names_to_run)
+        return(schemes_to_run, profile_names_to_run, list_of_plasmids)
 
 parser = argparse.ArgumentParser(description="")
 # Arguments
@@ -356,6 +360,8 @@ parser.add_argument("-x", "--extented_output",
                           a tab seperated file with allele profile results", action="store_true")
 parser.add_argument("-xm", "--extented_output_with_scheme",
                     help="Similar to -x (--extended_output) but it adds specific scheme name to the start of the file name when multiple schemes are selected", action="store_true")
+parser.add_argument("-so", "--simple_output",
+                    help="Give simple output with only the allele profile results in tab seperated file", action="store_true")
 parser.add_argument("-q", "--quiet", action="store_true")
 
 args = parser.parse_args()
@@ -404,8 +410,9 @@ scheme_list = load_scheme_list_config(scheme_list, database)
 
 schemes_to_run = []
 profile_names_to_run = []
+list_of_plasmids = []
 if args.pf_results:
-    schemes_to_run, profile_names_to_run = plasmidfinder_parsing(args.pf_results, scheme_list)
+    schemes_to_run, profile_names_to_run, list_of_plasmids = plasmidfinder_parsing(args.pf_results, scheme_list)
 elif args.scheme == "all":
     schemes_to_run = list(scheme_list.keys())
     profile_names_to_run = list(scheme_list.values())
@@ -435,6 +442,7 @@ if method_path and not shutil.which(method_path):
 
 extented_output = args.extented_output
 extented_output_with_scheme = args.extented_output_with_scheme
+simple_output = args.simple_output
 
 if 0 <= args.coverage <= 1:
     min_cov = args.coverage
@@ -889,12 +897,55 @@ for i in range(len(schemes_to_run)):
         result_file.close()
 
 # Save json output
-data_result_file = "{}/data.json".format(outdir) 
-with open(data_result_file, "w") as outfile:  
-    json.dump(data, outfile)
-outfile.close()
+if not simple_output:
+    data_result_file = "{}/data.json".format(outdir) 
+    with open(data_result_file, "w") as outfile:  
+        json.dump(data, outfile)
+    outfile.close()
 
-pprint.pprint(data)
+    pprint.pprint(data)
 
-if args.quiet:
-    f.close()
+    if args.quiet:
+        f.close()
+else:
+    # Write simple output to a TSV file
+    list_of_plasmids_str = ",".join(list_of_plasmids)
+    simple_output_list = [["plasmids", "IncF", "IncI1", "IncA/C", "IncHI1", "IncHI2", "IncN", "pMLST summary"], [list_of_plasmids_str, "", "", "", "", "", "", ""]]
+
+    for service in data:
+        scheme = data[service]["user_input"]["scheme"].lower()
+
+        sequence_type = data[service]["results"]["sequence_type"]
+        if sequence_type == "Unknown":
+            sequence_type = ""
+        if scheme == "incf":
+            simple_output_list[1][1] = sequence_type.strip("[]")
+        elif scheme == "inci1":
+            simple_output_list[1][2] = sequence_type.strip("[]")
+        elif scheme == "incac":
+            simple_output_list[1][3] = sequence_type.strip("[]")
+        elif scheme == "inchi1":
+            simple_output_list[1][4] = sequence_type.strip("[]")
+        elif scheme == "inchi2":
+            simple_output_list[1][5] = sequence_type.strip("[]")
+        elif scheme == "incn":
+            simple_output_list[1][6] = sequence_type.strip("[]")
+        if simple_output_list[1][7] == "":
+            simple_output_list[1][7] = scheme + sequence_type
+            if not args.pf_results:
+                simple_output_list[1][0] = scheme
+        else:
+            if sequence_type != "":
+                simple_output_list[1][7] += "," + scheme + sequence_type
+                if not args.pf_results:
+                    simple_output_list[1][0] += "," + scheme
+    
+    simple_output_file = "{}/simple_output.tsv".format(outdir)
+    with open(simple_output_file, "w") as f:
+        for row in simple_output_list:
+            f.write("\t".join(row) + "\n")
+
+    pprint.pprint(simple_output_list)
+
+    if args.quiet:
+        f.close()
