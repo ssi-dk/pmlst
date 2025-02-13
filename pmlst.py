@@ -306,7 +306,7 @@ def plasmidfinder_parsing(pf_results, scheme_list):
             sys.exit("PlasmidFinder results file does not contain the expected columns.")
         # Check if there are any rows besides header in the file
         if len(data.split('\n')) < 3:
-            sys.exit("PlasmidFinder results file does not contain any data, only header.")
+            return([], [], [])
         list_of_plasmids = []
         for line in data.split('\n')[1:]:
             if line:
@@ -413,6 +413,14 @@ profile_names_to_run = []
 list_of_plasmids = []
 if args.pf_results:
     schemes_to_run, profile_names_to_run, list_of_plasmids = plasmidfinder_parsing(args.pf_results, scheme_list)
+    if schemes_to_run == []:
+        simple_output_list = [["plasmids", "IncF", "IncI1", "IncA/C", "IncHI1", "IncHI2", "IncN", "pMLST summary"], ["", "", "", "", "", "", "", ""]]
+        simple_output_file = "{}/simple_output.tsv".format(outdir)
+        with open(simple_output_file, "w") as f:
+            for row in simple_output_list:
+                f.write("\t".join(row) + "\n")
+        print("PlasmidFinder results file does not contain any data, only header.")
+        sys.exit(0)
 elif args.scheme == "all":
     schemes_to_run = list(scheme_list.keys())
     profile_names_to_run = list(scheme_list.values())
