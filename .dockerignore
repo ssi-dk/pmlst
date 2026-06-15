@@ -1,0 +1,11 @@
+.conda*/
+.git/
+.mypy_cache/
+.pytest_cache/
+.ruff_cache/
+.pmlst-parity-db/
+__pycache__/
+dist/
+pmlst_old/
+tests/
+conda/

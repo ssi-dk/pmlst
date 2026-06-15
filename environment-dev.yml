@@ -1,0 +1,11 @@
+name: pmlst-dev
+channels:
+  - conda-forge
+dependencies:
+  - python=3.13
+  - black>=26
+  - hatchling>=1.25
+  - mypy>=1.20
+  - platformdirs
+  - python-build>=1.0
+  - ruff>=0.15

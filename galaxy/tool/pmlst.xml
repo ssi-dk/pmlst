@@ -1,0 +1,144 @@
+<tool id="pmlst" name="pMLST" version="@TOOL_VERSION@+galaxy@VERSION_SUFFIX@" profile="23.2">
+    <description>plasmid multi-locus sequence typing</description>
+    <macros>
+        <token name="@TOOL_VERSION@">2.1.0</token>
+        <token name="@VERSION_SUFFIX@">0</token>
+    </macros>
+    <requirements>
+        <requirement type="package" version="@TOOL_VERSION@">pmlst</requirement>
+        <requirement type="package" version="2.16.0">blast</requirement>
+        <requirement type="package" version="1.6.11">kma</requirement>
+    </requirements>
+    <command detect_errors="exit_code"><![CDATA[
+mkdir -p output_dir tmp_dir &&
+pmlst
+#if $input.input_type == "fasta"
+    -i '$input.contigs'
+    -mp blastn
+#elif $input.input_type == "fastq_single"
+    -i '$input.reads'
+    -mp kma
+#else
+    -i '$input.forward_reads' '$input.reverse_reads'
+    -mp kma
+#end if
+-o output_dir
+-t tmp_dir
+-s '$scheme'
+-p '$database.fields.path'
+-c '$coverage'
+-id '$identity'
+-x
+> '$log_file' 2>&1
+    ]]></command>
+    <inputs>
+        <conditional name="input">
+            <param name="input_type" type="select" label="Input type">
+                <option value="fasta" selected="true">Assembled contigs (FASTA)</option>
+                <option value="fastq_single">Single-end reads (FASTQ)</option>
+                <option value="fastq_paired">Paired-end reads (FASTQ)</option>
+            </param>
+            <when value="fasta">
+                <param name="contigs" type="data" format="fasta,fasta.gz" label="Contigs"/>
+            </when>
+            <when value="fastq_single">
+                <param name="reads" type="data" format="fastqsanger,fastqsanger.gz" label="Reads"/>
+            </when>
+            <when value="fastq_paired">
+                <param name="forward_reads" type="data" format="fastqsanger,fastqsanger.gz" label="Forward reads"/>
+                <param name="reverse_reads" type="data" format="fastqsanger,fastqsanger.gz" label="Reverse reads"/>
+            </when>
+        </conditional>
+        <param name="database" type="select" label="pMLST database">
+            <options from_data_table="pmlst_db">
+                <validator type="no_options" message="No pMLST database is available. Run the pMLST database data manager first."/>
+            </options>
+        </param>
+        <param name="scheme" type="text" value="incf" label="Scheme" help="Use a database scheme name such as incf, a comma-separated scheme list, or all.">
+            <validator type="empty_field"/>
+            <validator type="regex" message="Use scheme names, commas, dots, underscores, hyphens, or all.">^([A-Za-z0-9_.-]+)(,[A-Za-z0-9_.-]+)*$|^all$</validator>
+        </param>
+        <param name="coverage" type="float" min="0" max="1" value="0.6" label="Minimum coverage"/>
+        <param name="identity" type="float" min="0" max="1" value="0.95" label="Minimum identity"/>
+        <section name="output_files" title="Output files" expanded="true">
+            <param name="output_selection" type="select" display="checkboxes" multiple="true" label="Output files to collect">
+                <option value="data_json" selected="true">JSON result</option>
+                <option value="result_tsv" selected="true">Allele profile table</option>
+                <option value="result_txt" selected="true">Text report</option>
+                <option value="hit_fasta">Matched input sequences</option>
+                <option value="allele_fasta">Matched pMLST allele sequences</option>
+                <option value="logfile">Tool log</option>
+            </param>
+        </section>
+    </inputs>
+    <outputs>
+        <data name="json_file" format="json" from_work_dir="output_dir/data.json" label="${tool.name} on ${on_string}: data.json">
+            <filter>"data_json" in output_files["output_selection"]</filter>
+        </data>
+        <data name="result_file" format="tabular" from_work_dir="output_dir/results_tab.tsv" label="${tool.name} on ${on_string}: results.tsv">
+            <filter>"result_tsv" in output_files["output_selection"]</filter>
+        </data>
+        <data name="raw_file" format="txt" from_work_dir="output_dir/results.txt" label="${tool.name} on ${on_string}: results.txt">
+            <filter>"result_txt" in output_files["output_selection"]</filter>
+        </data>
+        <data name="hit_file" format="fasta" from_work_dir="output_dir/Hit_in_genome_seq.fsa" label="${tool.name} on ${on_string}: matched input sequences">
+            <filter>"hit_fasta" in output_files["output_selection"]</filter>
+        </data>
+        <data name="allele_file" format="fasta" from_work_dir="output_dir/pMLST_allele_seq.fsa" label="${tool.name} on ${on_string}: matched pMLST allele sequences">
+            <filter>"allele_fasta" in output_files["output_selection"]</filter>
+        </data>
+        <data name="log_file" format="txt" label="${tool.name} on ${on_string}: log">
+            <filter>"logfile" in output_files["output_selection"]</filter>
+        </data>
+    </outputs>
+    <tests>
+        <test expect_num_outputs="6">
+            <conditional name="input">
+                <param name="input_type" value="fasta"/>
+                <param name="contigs" value="test.fsa"/>
+            </conditional>
+            <param name="database" value="pmlst_fixture"/>
+            <param name="scheme" value="incf"/>
+            <section name="output_files">
+                <param name="output_selection" value="data_json,result_tsv,result_txt,hit_fasta,allele_fasta,logfile"/>
+            </section>
+            <output name="json_file" ftype="json">
+                <assert_contents>
+                    <has_text text="&quot;sequence_type&quot;: &quot;[F3:A3:B3]&quot;"/>
+                    <has_text text="&quot;scheme&quot;: &quot;incf&quot;"/>
+                    <has_text text="&quot;FII&quot;"/>
+                </assert_contents>
+            </output>
+            <output name="result_file" value="expected/results_tab.tsv"/>
+            <output name="raw_file" value="expected/results.txt"/>
+            <output name="hit_file" value="expected/Hit_in_genome_seq.fsa"/>
+            <output name="allele_file" value="expected/pMLST_allele_seq.fsa"/>
+            <output name="log_file">
+                <assert_contents>
+                    <has_text text="'sequence_type': '[F3:A3:B3]'"/>
+                </assert_contents>
+            </output>
+        </test>
+    </tests>
+    <help><![CDATA[
+**What it does**
+
+pMLST performs plasmid multi-locus sequence typing against a pMLST database.
+For assembled contigs it runs BLAST; for FASTQ reads it runs KMA.
+
+**Database**
+
+Install the pMLST database with the pMLST database data manager before running
+this tool. The wrapper tests use a small IncF-only fixture database and do not
+download the full database.
+
+**Outputs**
+
+The JSON result contains the structured pMLST result. The tabular output lists
+allele calls, the text report mirrors the legacy extended report, and the FASTA
+outputs contain matched input and pMLST allele sequences when selected.
+    ]]></help>
+    <citations>
+        <citation type="doi">10.1099/mgen.0.000206</citation>
+    </citations>
+</tool>

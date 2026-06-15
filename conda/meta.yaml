@@ -1,46 +1,49 @@
 {% set name = "pMLST" %}
 {% set version = "2.1.0" %}
-{% set sha256 = "3da48017ded3fc8a97e4f7fdccab8dc7eacc160ff278de8a2ec26a3dd9f2a45c" %}
 
 package:
   name: '{{ name|lower }}'
   version: '{{ version }}'
 
 source:
-  url: https://bitbucket.org/genomicepidemiology/{{ name|lower }}/get/{{ version }}.tar.gz
-  sha256: '{{ sha256 }}'
-  patches:
-    - python_path.patch
+  # Temporary local source for modernization validation.
+  # Replace with a release archive URL and sha256 before Bioconda submission.
+  path: ..
 
 build:
   number: 0
-  noarch: generic
+  noarch: python
+  script: '{{ PYTHON }} -m pip install . --no-deps --no-build-isolation -vv'
 
 requirements:
   host:
-    - git
-    - python >=3.12
-    - cgecore >=2.0.0
-    - kma >=1.4.15
+    - hatchling
+    - pip
+    - python >=3.10,<3.15
 
   run:
-    - python >=3.12
-    - kma >=1.4.15
-    - biopython >=1.85
-    - blast >=2.16.0
-    - cgecore >=2.0.0
-    - tabulate >=0.9.0
+    - python >=3.10,<3.15
+    - blast
+    - biopython >=1.81
+    - cgecore >=2,<3
+    - kma
+    - platformdirs
+    - tabulate >=0.8
 
 test:
   commands:
-    - pmlst.py --help
+    - pmlst --help
+    - pmlst --version
+    - pmlst.py --version
+    - pmlst-download-db --help
+    - python -c "import pmlst; print('import ok')"
 
 about:
   home: https://bitbucket.org/genomicepidemiology/pmlst
   license: APACHE-2.0
   license_family: APACHE
-  license_file: LICENSE-2.0.txt
+  license_file: LICENSE
   summary: Plasmid Multi-Locus Sequence Typing
 
 extra:
-  notes: "pMLST requires database that can be downloaded with download-db.sh."
+  notes: "pMLST requires an external database. Install or update it after package installation with pmlst-download-db."

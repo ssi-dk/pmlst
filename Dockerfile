@@ -1,63 +1,70 @@
-FROM python:3.12-slim-bullseye
+FROM mambaorg/micromamba:2.8.1 AS builder
 
-ENV DEBIAN_FRONTEND noninteractive
+ARG MAMBA_DOCKERFILE_ACTIVATE=1
 
-RUN apt update -qq; \
-    apt install -y git \
-    build-essential \
-    apt-utils \
-    wget \
-    ncbi-blast+ \
-    libz-dev \
-    procps \
-    ; \
-    rm -rf /var/cache/apt/* /var/lib/apt/lists/*;
-    
-RUN python -m pip install --upgrade pip
+USER root
 
-ENV DEBIAN_FRONTEND Teletype
+RUN micromamba install -y -n base \
+      -c conda-forge \
+      -c bioconda \
+      --override-channels \
+      --strict-channel-priority \
+      python=3.13 \
+      pip \
+      hatchling \
+      git \
+      blast \
+      kma \
+      "cgecore>=2,<3" \
+      "biopython>=1.81" \
+      "tabulate>=0.8" \
+      platformdirs \
+    && micromamba clean -a -y \
+    && rm -rf /opt/conda/pkgs /root/.mamba/pkgs
 
-# Install python dependencies
-RUN pip install -U biopython==1.85 tabulate==0.9.0 cgecore==2.0.0;
+ENV PATH=/opt/conda/bin:$PATH
 
-# Install kma
-RUN cd /usr/src; \
-    git clone --depth 1 -b 1.4.15 https://bitbucket.org/genomicepidemiology/kma.git; \
-    cd kma && make; \
-    mv kma* /usr/bin/; \
-    cd ..; \
-    rm -rf kma/;
+WORKDIR /tmp/pmlst-src
 
-COPY pmlst.py /usr/src/pmlst.py 
+COPY pyproject.toml README.md LICENSE ./
+COPY src ./src
 
-RUN chmod 755 /usr/src/pmlst.py; 
+RUN python -m pip install . --no-deps --no-build-isolation \
+    && pmlst-download-db /opt/pmlst/db \
+    && rm -rf /opt/pmlst/db/.git /tmp/pmlst-src /root/.cache/pip
 
-# Install database
-RUN cd /; \
-    mkdir databases; \
-    cd /databases/; \
-    git clone https://bitbucket.org/genomicepidemiology/pmlst_db.git; \
-    cd /databases/pmlst_db; \
-    python INSTALL.py; \
-    rm -rf .git;
+FROM mambaorg/micromamba:2.8.1
 
-# Environmental variables
-ENV PMLST_DB /databases/pmlst_db/
-RUN echo "Database path is $PMLST_DB"
+ARG MAMBA_DOCKERFILE_ACTIVATE=1
 
-ENV PATH $PATH:/usr/src
-# Setup .bashrc file for convenience during debugging
-RUN echo "alias ls='ls -h --color=tty'\n"\
-"alias ll='ls -lrt'\n"\
-"alias l='less'\n"\
-"alias du='du -hP --max-depth=1'\n"\
-"alias cwd='readlink -f .'\n"\
-"PATH=$PATH\n">> ~/.bashrc
+USER root
 
-# Setup environment
-RUN cd /; \
-    mkdir app;
-WORKDIR /app
+RUN micromamba install -y -n base \
+      -c conda-forge \
+      -c bioconda \
+      --override-channels \
+      --strict-channel-priority \
+      python=3.13 \
+      blast \
+      kma \
+      "cgecore>=2,<3" \
+      "biopython>=1.81" \
+      "tabulate>=0.8" \
+      platformdirs \
+    && micromamba clean -a -y \
+    && rm -rf /opt/conda/pkgs /root/.mamba/pkgs
 
-# Execute program when running the container
-ENTRYPOINT ["/usr/src/pmlst.py"]
+ENV PATH=/opt/conda/bin:$PATH
+ENV PMLST_DB=/opt/pmlst/db
+
+COPY --from=builder /opt/conda/bin/pmlst /opt/conda/bin/pmlst
+COPY --from=builder /opt/conda/bin/pmlst.py /opt/conda/bin/pmlst.py
+COPY --from=builder /opt/conda/bin/pmlst-download-db /opt/conda/bin/pmlst-download-db
+COPY --from=builder /opt/conda/lib/python3.13/site-packages/cli.py /opt/conda/lib/python3.13/site-packages/cli.py
+COPY --from=builder /opt/conda/lib/python3.13/site-packages/pmlst /opt/conda/lib/python3.13/site-packages/pmlst
+COPY --from=builder /opt/conda/lib/python3.13/site-packages/pmlst-2.1.0.dist-info /opt/conda/lib/python3.13/site-packages/pmlst-2.1.0.dist-info
+COPY --from=builder /opt/pmlst/db /opt/pmlst/db
+
+WORKDIR /data
+
+CMD ["pmlst", "--help"]

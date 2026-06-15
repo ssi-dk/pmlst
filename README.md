@@ -3,108 +3,116 @@ pMLST
 
 Plasmid Multi-Locus Sequence Typing
 
-
-Documentation
-=============
-
-The pMLST service contains one python script *pmlst.py* which is the script of the latest
-version of the pMLST service. The method enables investigators to determine the ST based on WGS data.
-
-## Content of the repository
-1. pmlst.py     - the program
-2. README.md
-3. Dockerfile   - dockerfile for building the pmlst docker container
-4. test.fsa     - test fasta file
+pMLST determines plasmid sequence types from assembled genomes or sequencing
+reads using pMLST schemes from the CGE pMLST database.
 
 
 ## Installation
 
-Setting up pMLST program
+Bioconda installation is preferred because it installs pMLST together with
+BLAST and KMA runtime dependencies:
+
 ```bash
-# Go to wanted location for pmlst
-cd /path/to/some/dir
-# Clone and enter the pmlst directory
+conda install -c conda-forge -c bioconda pmlst
+```
+
+Install or update the pMLST database after installing the tool. With conda,
+this installs into the current environment's default pMLST database location:
+
+```bash
+pmlst-download-db
+```
+
+To install the database at a specific location instead:
+
+```bash
+pmlst-download-db /path/to/pmlst_db
+```
+
+Then pass a custom database path with `-p` or export it:
+
+```bash
+export PMLST_DB=/path/to/pmlst_db
+```
+
+pMLST looks for the database in this order:
+
+1. `-p` / `--database`
+2. `PMLST_DB`
+3. `$CONDA_PREFIX/share/pmlst/db`
+4. the platform-specific user data directory from platformdirs
+
+Install from PyPI. This installs the Python package only; `blastn` is required
+for FASTA input and `kma` is required for FASTQ input. They must be available on
+`PATH`, or their executable paths must be supplied with `-mp`.
+
+```bash
+python3 -m pip install pmlst
+```
+
+Install from source. This also installs the Python package only; it does not
+install BLAST or KMA.
+
+```bash
 git clone https://bitbucket.org/genomicepidemiology/pmlst.git
 cd pmlst
+python3 -m pip install .
 ```
 
-Build Docker container
+The Docker image includes the packaged tool and a bundled pMLST database.
+Rebuild the image to fetch the current upstream database into the image:
+
 ```bash
-# Build container
 docker build -t pmlst .
+docker run --rm -v "$PWD:/workdir" pmlst pmlst -i /workdir/test_data/test.fsa -s incf -x
 ```
 
-#Download and install pMLST database
+To keep an updated database outside the image, mount a host directory and run
+the database downloader in the container:
+
 ```bash
-# Go to the directory where you want to store the pmlst database
-cd /path/to/some/dir
-# Clone database from git repository (develop branch)
-git clone https://bitbucket.org/genomicepidemiology/pmlst_db.git
-cd pmlst_db
-pMLST_DB=$(pwd)
-# Install pMLST database with executable kma_index program
-python3 INSTALL.py kma_index
-```
-
-If kma_index has not bin install please install kma_index from the kma repository:
-https://bitbucket.org/genomicepidemiology/kma
-
-## Dependencies
-In order to run the program without using docker, Python 3.5 (or newer) should be installed along with the following versions of the modules (or newer).
-
-#### Modules
-- cgecore 1.5.5
-- tabulate 0.7.7
-
-Modules can be installed using the following command. Here, the installation of the module cgecore is used as an example:
-```bash
-pip3 install cgecore
-```
-#### KMA and BLAST
-Additionally KMA and BLAST version 2.8.1 or newer should be installed.
-The newest versions of KMA and BLAST can be installed from here:
-```url
-https://bitbucket.org/genomicepidemiology/kma
-```
-
-```url
-ftp://ftp.ncbi.nlm.nih.gov/blast/executables/blast+/LATEST/
+docker run --rm -v "$PWD/pmlst_db:/db" pmlst pmlst-download-db /db
 ```
 
 ## Usage
 
-The program can be invoked with the -h option to get help and more information of the service.
-Run Docker container
-
+Show command help and version:
 
 ```bash
-# Run pmlst container
-docker run --rm -it \
-       -v $pMLST_DB:/database \
-       -v $(pwd):/workdir \
-       pmlst -i [INPUTFILE] -o . -s [SCHEME] [-x] [-mp] [-p] [-t]
+pmlst --help
+pmlst --version
+pmlst-download-db --help
 ```
 
-When running the docker file you have to mount 2 directory: 
- 1. pmlst_db (pMLST database) downloaded from bitbucket
- 2. An output/input folder from where the input file can be reached and an output files can be saved. 
-Here we mount the current working directory (using $pwd) and use this as the output directory, 
-the input file should be reachable from this directory as well.
- 
-` -i INPUTFILE	input file (fasta or fastq) relative to pwd `
+Run pMLST on assembled contigs with BLAST:
 
-` -s SCHEME 	pMLST scheme to be used, details are in config file `
+```bash
+pmlst -i test_data/test.fsa -s incf -p /path/to/pmlst_db -x
+```
 
-` -o OUTDIR	outpur directory relative to pwd `
+Run with an explicit method executable:
 
-` -x 		extended output. Will create an extented output `
+```bash
+pmlst -i test_data/test.fsa -s incf -p /path/to/pmlst_db -mp /usr/bin/blastn
+```
 
-` -mp METHOD_PATH	Path to executable of the method to be used (kma or blast)`
+Run with custom output and temporary directories:
 
-` -p DATABASE	Path to database directory `
+```bash
+pmlst -i sample.fasta -s incf -p /path/to/pmlst_db -o results -t tmp -x
+```
 
-` -t TMP_DIR	Temporary directory for storage of results from external software. `
+Common options:
 
+- `-i INPUTFILE`: FASTA or FASTQ input file.
+- `-s SCHEME`: scheme name, comma-separated scheme list, or `all`.
+- `-p DATABASE`: pMLST database directory.
+- `-o OUTDIR`: output directory.
+- `-t TMP_DIR`: temporary directory for external tool output.
+- `-x`: write extended text and FASTA outputs.
+- `-mp METHOD_PATH`: path to `blastn` or `kma`.
+- `-c COVERAGE`: minimum coverage.
+- `-id IDENTITY`: minimum identity.
 
 ## Web-server
 

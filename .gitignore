@@ -3,3 +3,10 @@ blast-2.2.26
 Output
 *.gz
 conda/conda_old/
+.conda-dev/
+.conda-parity-*/
+.pmlst-parity-db/
+dist/
+AGENTS*.md
+pmlst_old/
+tests/

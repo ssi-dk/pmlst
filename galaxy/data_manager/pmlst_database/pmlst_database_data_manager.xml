@@ -1,0 +1,72 @@
+<tool id="pmlst_database_data_manager" name="pMLST database" tool_type="manage_data" version="@TOOL_VERSION@+galaxy@VERSION_SUFFIX@" profile="23.2">
+    <description>download or update the pMLST database</description>
+    <macros>
+        <token name="@TOOL_VERSION@">2.1.0</token>
+        <token name="@VERSION_SUFFIX@">0</token>
+    </macros>
+    <requirements>
+        <requirement type="package" version="@TOOL_VERSION@">pmlst</requirement>
+        <requirement type="package" version="2.49.0">git</requirement>
+        <requirement type="package" version="2.16.0">blast</requirement>
+        <requirement type="package" version="1.6.11">kma</requirement>
+    </requirements>
+    <command detect_errors="exit_code"><![CDATA[
+mkdir -p '${out_file.extra_files_path}' &&
+python '$__tool_directory__/pmlst_database_data_manager.py'
+--out-file '$out_file'
+--db-key '$db_key'
+--db-name '$db_name'
+--destination '${out_file.extra_files_path}/pmlst_db'
+#if $source.source_select == "fixture"
+    --fixture-db '$__tool_directory__/../test-data/pmlst_fixture_db'
+#end if
+    ]]></command>
+    <inputs>
+        <conditional name="source">
+            <param name="source_select" type="select" label="Database source">
+                <option value="download" selected="true">Download or update current upstream pMLST database</option>
+                <option value="fixture">Use bundled IncF fixture database for tests only</option>
+            </param>
+            <when value="download"/>
+            <when value="fixture"/>
+        </conditional>
+        <param name="db_key" type="text" value="pmlst_current" label="Database ID">
+            <validator type="empty_field"/>
+            <validator type="regex" message="Use only letters, numbers, dot, underscore, and hyphen.">^[A-Za-z0-9_.-]+$</validator>
+        </param>
+        <param name="db_name" type="text" value="pMLST database" label="Database display name">
+            <validator type="empty_field"/>
+        </param>
+    </inputs>
+    <outputs>
+        <data name="out_file" format="data_manager_json"/>
+    </outputs>
+    <tests>
+        <test>
+            <conditional name="source">
+                <param name="source_select" value="fixture"/>
+            </conditional>
+            <param name="db_key" value="pmlst_fixture"/>
+            <param name="db_name" value="pMLST fixture database"/>
+            <output name="out_file">
+                <assert_contents>
+                    <has_text text="pmlst_db"/>
+                    <has_text text="pmlst_fixture"/>
+                    <has_text text="pMLST fixture database"/>
+                    <has_text text="2023-04-24"/>
+                </assert_contents>
+            </output>
+        </test>
+    </tests>
+    <help><![CDATA[
+This data manager installs or updates the pMLST database used by the pMLST
+Galaxy wrapper. The default mode calls ``pmlst-download-db`` and records the
+database in the ``pmlst_db`` data table.
+
+The bundled fixture source is only for offline Galaxy tests and contains an
+IncF-only subset of the database.
+    ]]></help>
+    <citations>
+        <citation type="doi">10.1099/mgen.0.000206</citation>
+    </citations>
+</tool>

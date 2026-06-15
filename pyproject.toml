@@ -1,0 +1,101 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "pmlst"
+version = "2.1.0"
+description = "Plasmid Multi-Locus Sequence Typing"
+readme = "README.md"
+requires-python = ">=3.10,<3.15"
+license = "Apache-2.0"
+license-files = ["LICENSE"]
+authors = [
+  { name = "Technical University of Denmark" },
+]
+dependencies = [
+  "cgecore>=2,<3",
+  "biopython>=1.81",
+  "platformdirs",
+  "tabulate>=0.8",
+]
+
+[project.optional-dependencies]
+dev = [
+  "black>=26.0",
+  "build>=1.0",
+  "hatchling>=1.25",
+  "mypy>=1.20",
+  "ruff>=0.15",
+]
+test = []
+
+[project.scripts]
+pmlst = "cli:main"
+"pmlst.py" = "cli:main"
+pmlst-download-db = "cli:db_setup_main"
+
+[tool.hatch.build.targets.wheel]
+only-include = [
+  "src/cli.py",
+  "src/pmlst",
+]
+sources = ["src"]
+
+[tool.hatch.build.targets.sdist]
+ignore-vcs = true
+only-include = [
+  "src/cli.py",
+  "src/pmlst",
+  "LICENSE",
+  "README.md",
+  "pyproject.toml",
+]
+exclude = [
+  ".gitignore",
+]
+
+[tool.black]
+line-length = 88
+target-version = ["py310"]
+extend-exclude = '''
+^/pmlst_old/
+'''
+
+[tool.ruff]
+line-length = 88
+target-version = "py310"
+extend-exclude = ["pmlst_old"]
+
+[tool.ruff.lint]
+select = [
+  "E",
+  "F",
+  "I",
+  "B",
+  "UP",
+  "C4",
+  "SIM",
+  "RET",
+  "RUF",
+  "PIE",
+  "PTH",
+  "PLC",
+  "PLE",
+  "PLW",
+]
+
+[tool.ruff.lint.per-file-ignores]
+# These imports must stay lazy so installed pmlst.py does not shadow the package.
+"src/cli.py" = ["PLC0415"]
+# Keep cgecore imports lazy so --help/--version work without BLAST/KMA runtime imports.
+"src/pmlst/methods.py" = ["PLC0415"]
+
+[tool.mypy]
+python_version = "3.10"
+exclude = ["^pmlst_old/", "^galaxy/.*/test-data/pmlst_fixture_db/INSTALL\\.py$"]
+strict = true
+
+[[tool.mypy.overrides]]
+module = ["cgecore.*", "tabulate"]
+ignore_missing_imports = true

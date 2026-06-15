@@ -1,0 +1,12 @@
+name: data_manager_pmlst_database
+owner: iuc
+description: Install or update the pMLST database for Galaxy.
+long_description: |
+  Data manager for installing and updating the pMLST database used by the pMLST
+  Galaxy tool wrapper. The bundled fixture mode is intended for offline tests
+  only.
+categories:
+  - Data Managers
+remote_repository_url: https://bitbucket.org/povilasmat1/pmlst
+homepage_url: https://bitbucket.org/genomicepidemiology/pmlst/src/master/
+type: unrestricted
