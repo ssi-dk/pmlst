@@ -52,10 +52,10 @@ docker build -t pmlst .
 docker run --rm -v "$PWD:/workdir" pmlst pmlst -i /workdir/test_data/test.fsa -s incf -x
 ```
 
-To keep the database outside the image:
+Rebuild the image to update the bundled database:
 
 ```bash
-docker run --rm -v "$PWD/pmlst_db:/db" pmlst pmlst-download-db /db
+docker build --no-cache -t pmlst .
 ```
 
 ## Usage
@@ -68,35 +68,42 @@ pmlst --version
 pmlst-download-db --help
 ```
 
-Run pMLST on assembled contigs with BLAST:
-
 ```bash
-pmlst -i test_data/test.fsa -s incf -p /path/to/pmlst_db -x
-```
+# Run pMLST on assembled contigs with BLAST.
+pmlst -i test_data/test.fsa -s incf -x
 
-Run with an explicit method executable:
-
-```bash
+# Run with an explicit method executable.
 pmlst -i test_data/test.fsa -s incf -p /path/to/pmlst_db -mp /usr/bin/blastn
-```
 
-Run with custom output and temporary directories:
-
-```bash
+# Run with custom output and temporary directories.
 pmlst -i sample.fasta -s incf -p /path/to/pmlst_db -o results -t tmp -x
 ```
 
-Common options:
+```text
+Required:
+  -i INPUTFILE [INPUTFILE ...]   One or more FASTA or FASTQ input files.
+  -s SCHEME                      Scheme, comma-separated schemes, or all.
+  -pf PF_RESULTS                 Precomputed PlasmidFinder results.
 
-- `-i INPUTFILE`: FASTA or FASTQ input file.
-- `-s SCHEME`: scheme name, comma-separated scheme list, or `all`.
-- `-p DATABASE`: pMLST database directory.
-- `-o OUTDIR`: output directory.
-- `-t TMP_DIR`: temporary directory for external tool output.
-- `-x`: write extended text and FASTA outputs.
-- `-mp METHOD_PATH`: path to `blastn` or `kma`.
-- `-c COVERAGE`: minimum coverage.
-- `-id IDENTITY`: minimum identity.
+  Use either -s or -pf.
+  Available schemes: incac, incf, inchi1, inchi2, inci1, incn,
+                     pbssb1-family, shigella.
+
+Output options:
+  -o OUTDIR                      Output directory.
+  -x                             Write extended text and FASTA outputs.
+  -xm                            Like -x, but prefix extended output filenames
+                                 with the scheme name for multi-scheme runs.
+  -so                            Write simple tab-separated allele profile output.
+  -q                             Quiet command-line output.
+  -t TMP_DIR                     Temporary directory for external tool output.
+
+Other options:
+  -p DATABASE                    pMLST database directory.
+  -mp METHOD_PATH                Path to blastn or kma.
+  -c COVERAGE                    Minimum coverage.
+  -id IDENTITY                   Minimum identity.
+```
 
 ## Web-server
 
