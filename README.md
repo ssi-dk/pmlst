@@ -60,13 +60,7 @@ docker build --no-cache -t pmlst .
 
 ## Usage
 
-Show command help and version:
-
-```bash
-pmlst --help
-pmlst --version
-pmlst-download-db --help
-```
+Common command examples:
 
 ```bash
 # Run pMLST on assembled contigs with BLAST.
@@ -78,6 +72,8 @@ pmlst -i test_data/test.fsa -s incf -p /path/to/pmlst_db -mp /usr/bin/blastn
 # Run with custom output and temporary directories.
 pmlst -i sample.fasta -s incf -p /path/to/pmlst_db -o results -t tmp -x
 ```
+
+Common command-line options:
 
 ```text
 Required:
