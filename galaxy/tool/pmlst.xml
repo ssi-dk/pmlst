@@ -1,14 +1,13 @@
-<tool id="pmlst" name="pMLST" version="@TOOL_VERSION@+galaxy@VERSION_SUFFIX@" profile="23.2">
+<tool id="pmlst" name="pMLST" version="@TOOL_VERSION@+galaxy@VERSION_SUFFIX@" profile="@PROFILE@">
     <description>plasmid multi-locus sequence typing</description>
     <macros>
-        <token name="@TOOL_VERSION@">2.1.0</token>
-        <token name="@VERSION_SUFFIX@">0</token>
+        <import>macros.xml</import>
     </macros>
-    <requirements>
-        <requirement type="package" version="@TOOL_VERSION@">pmlst_ssi</requirement>
-        <requirement type="package" version="2.16.0">blast</requirement>
-        <requirement type="package" version="1.6.11">kma</requirement>
-    </requirements>
+    <xrefs>
+        <xref type="bio.tools">pmlst</xref>
+    </xrefs>
+    <expand macro="creator" />
+    <expand macro="requirements" />
     <command detect_errors="exit_code"><![CDATA[
 mkdir -p output_dir tmp_dir &&
 pmlst
@@ -54,9 +53,9 @@ pmlst
                 <validator type="no_options" message="No pMLST database is available. Run the pMLST database data manager first."/>
             </options>
         </param>
-        <param name="scheme" type="text" value="incf" label="Scheme" help="Use a database scheme name such as incf, a comma-separated scheme list, or all.">
+        <param name="scheme" type="text" value="incf" label="Scheme" help="Use one database scheme name such as incf.">
             <validator type="empty_field"/>
-            <validator type="regex" message="Use scheme names, commas, dots, underscores, hyphens, or all.">^([A-Za-z0-9_.-]+)(,[A-Za-z0-9_.-]+)*$|^all$</validator>
+            <validator type="regex" message="Use one scheme name; comma-separated lists and all are not supported in this wrapper.">^(?!all$)[A-Za-z0-9_.-]+$</validator>
         </param>
         <param name="coverage" type="float" min="0" max="1" value="0.6" label="Minimum coverage"/>
         <param name="identity" type="float" min="0" max="1" value="0.95" label="Minimum identity"/>
@@ -119,6 +118,24 @@ pmlst
                 </assert_contents>
             </output>
         </test>
+        <test expect_num_outputs="2">
+            <conditional name="input">
+                <param name="input_type" value="fasta"/>
+                <param name="contigs" value="test.fsa"/>
+            </conditional>
+            <param name="database" value="pmlst_fixture"/>
+            <param name="scheme" value="incf"/>
+            <section name="output_files">
+                <param name="output_selection" value="data_json,result_tsv"/>
+            </section>
+            <output name="json_file" ftype="json">
+                <assert_contents>
+                    <has_text text="&quot;sequence_type&quot;: &quot;[F3:A3:B3]&quot;"/>
+                    <has_text text="&quot;scheme&quot;: &quot;incf&quot;"/>
+                </assert_contents>
+            </output>
+            <output name="result_file" value="expected/results_tab.tsv"/>
+        </test>
     </tests>
     <help><![CDATA[
 **What it does**
@@ -137,8 +154,9 @@ download the full database.
 The JSON result contains the structured pMLST result. The tabular output lists
 allele calls, the text report mirrors the legacy extended report, and the FASTA
 outputs contain matched input and pMLST allele sequences when selected.
+
+The Galaxy wrapper accepts one pMLST scheme per run so selected extended output
+datasets can be collected with stable filenames.
     ]]></help>
-    <citations>
-        <citation type="doi">10.1128/AAC.02412-14</citation>
-    </citations>
+    <expand macro="citations" />
 </tool>

@@ -1,15 +1,10 @@
-<tool id="pmlst_database_data_manager" name="pMLST database" tool_type="manage_data" version="@TOOL_VERSION@+galaxy@VERSION_SUFFIX@" profile="23.2">
+<tool id="pmlst_database_data_manager" name="pMLST database" tool_type="manage_data" version="@TOOL_VERSION@+galaxy@VERSION_SUFFIX@" profile="@PROFILE@">
     <description>download or update the pMLST database</description>
     <macros>
-        <token name="@TOOL_VERSION@">2.1.0</token>
-        <token name="@VERSION_SUFFIX@">0</token>
+        <import>macros.xml</import>
     </macros>
-    <requirements>
-        <requirement type="package" version="@TOOL_VERSION@">pmlst_ssi</requirement>
-        <requirement type="package" version="2.49.0">git</requirement>
-        <requirement type="package" version="2.16.0">blast</requirement>
-        <requirement type="package" version="1.6.11">kma</requirement>
-    </requirements>
+    <expand macro="creator" />
+    <expand macro="requirements" />
     <command detect_errors="exit_code"><![CDATA[
 mkdir -p '${out_file.extra_files_path}' &&
 python '$__tool_directory__/pmlst_database_data_manager.py'
@@ -66,7 +61,5 @@ database in the ``pmlst_db`` data table.
 The bundled fixture source is only for offline Galaxy tests and contains an
 IncF-only subset of the database.
     ]]></help>
-    <citations>
-        <citation type="doi">10.1128/AAC.02412-14</citation>
-    </citations>
+    <expand macro="citations" />
 </tool>

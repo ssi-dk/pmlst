@@ -7,6 +7,6 @@ long_description: |
   contains the pMLST tool wrapper and its offline test fixture.
 categories:
   - Sequence Analysis
-remote_repository_url: https://bitbucket.org/povilasmat1/pmlst
-homepage_url: https://bitbucket.org/genomicepidemiology/pmlst/src/master/
+remote_repository_url: https://github.com/ssi-dk/pmlst
+homepage_url: https://github.com/ssi-dk/pmlst
 type: unrestricted
