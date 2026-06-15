@@ -1,4 +1,4 @@
-{% set name = "pMLST" %}
+{% set name = "pmlst_ssi" %}
 {% set version = "2.1.0" %}
 
 package:
@@ -6,9 +6,8 @@ package:
   version: '{{ version }}'
 
 source:
-  # Temporary local source for modernization validation.
-  # Replace with a release archive URL and sha256 before Bioconda submission.
-  path: ..
+  url: https://pypi.io/packages/source/p/pmlst-ssi/pmlst_ssi-2.1.0.tar.gz
+  sha256: 3d4c6117509f221a419194eca4c7d8968d1f36a5ad2eedce7c35973ace1b7c1c
 
 build:
   number: 0
@@ -39,7 +38,7 @@ test:
     - python -c "import pmlst; print('import ok')"
 
 about:
-  home: https://bitbucket.org/genomicepidemiology/pmlst
+  home: https://github.com/ssi-dk/pmlst
   license: APACHE-2.0
   license_family: APACHE
   license_file: LICENSE

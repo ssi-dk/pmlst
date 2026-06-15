@@ -9,13 +9,13 @@ reads using pMLST schemes from the CGE pMLST database.
 
 ```bash
 # Bioconda is preferred; it installs pMLST, BLAST, and KMA.
-conda install -c conda-forge -c bioconda pmlst
+conda install -c conda-forge -c bioconda pmlst_ssi
 
 # PyPI installs the Python package only. Install blastn/kma separately.
-python3 -m pip install pmlst
+python3 -m pip install pmlst_ssi
 
 # Source install also requires blastn/kma from conda or the system.
-git clone https://bitbucket.org/genomicepidemiology/pmlst.git
+git clone https://github.com/ssi-dk/pmlst.git
 cd pmlst
 python3 -m pip install .
 ```

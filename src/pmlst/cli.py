@@ -10,7 +10,7 @@ from .utils import PmlstError
 
 def package_version() -> str:
     try:
-        return version("pmlst")
+        return version("pmlst_ssi")
     except PackageNotFoundError:
         pyproject = Path(__file__).resolve().parents[2] / "pyproject.toml"
         version_match = re.search(

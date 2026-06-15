@@ -5,7 +5,7 @@
         <token name="@VERSION_SUFFIX@">0</token>
     </macros>
     <requirements>
-        <requirement type="package" version="@TOOL_VERSION@">pmlst</requirement>
+        <requirement type="package" version="@TOOL_VERSION@">pmlst_ssi</requirement>
         <requirement type="package" version="2.49.0">git</requirement>
         <requirement type="package" version="2.16.0">blast</requirement>
         <requirement type="package" version="1.6.11">kma</requirement>
