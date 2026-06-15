@@ -139,6 +139,6 @@ allele calls, the text report mirrors the legacy extended report, and the FASTA
 outputs contain matched input and pMLST allele sequences when selected.
     ]]></help>
     <citations>
-        <citation type="doi">10.1099/mgen.0.000206</citation>
+        <citation type="doi">10.1128/AAC.02412-14</citation>
     </citations>
 </tool>

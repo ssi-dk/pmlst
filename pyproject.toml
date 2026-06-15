@@ -13,6 +13,9 @@ license-files = ["LICENSE"]
 authors = [
   { name = "Technical University of Denmark" },
 ]
+maintainers = [
+  { name = "Povilas Matusevicius", email = "povilas.matusevicius@gmail.com" },
+]
 dependencies = [
   "cgecore>=2,<3",
   "biopython>=1.81",

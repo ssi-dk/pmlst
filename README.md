@@ -114,6 +114,7 @@ When using the method please cite:
 PlasmidFinder and pMLST: in silico detection and typing of plasmids.
 Carattoli A, Zankari E, Garcia-Fernandez A, Volby Larsen M, Lund O, Villa L, Aarestrup FM, Hasman H.
 Antimicrob. Agents Chemother. 2014. April 28th.
+doi: 10.1128/AAC.02412-14
 [Epub ahead of print]
 
 References

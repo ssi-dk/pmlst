@@ -39,10 +39,16 @@ test:
 
 about:
   home: https://github.com/ssi-dk/pmlst
-  license: APACHE-2.0
+  dev_url: https://github.com/ssi-dk/pmlst
+  doc_url: https://github.com/ssi-dk/pmlst#readme
+  license: Apache-2.0
   license_family: APACHE
   license_file: LICENSE
   summary: Plasmid Multi-Locus Sequence Typing
 
 extra:
+  identifiers:
+    - doi:10.1128/AAC.02412-14
   notes: "pMLST requires an external database. Install or update it after package installation with pmlst-download-db."
+  recipe-maintainers:
+    - PovilasMat
