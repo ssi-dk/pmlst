@@ -1,7 +1,5 @@
-pMLST
+pMLST (Plasmid Multi-Locus Sequence Typing)
 ===================
-
-Plasmid Multi-Locus Sequence Typing
 
 pMLST determines plasmid sequence types from assembled genomes or sequencing
 reads using pMLST schemes from the CGE pMLST database.
@@ -9,29 +7,32 @@ reads using pMLST schemes from the CGE pMLST database.
 
 ## Installation
 
-Bioconda installation is preferred because it installs pMLST together with
-BLAST and KMA runtime dependencies:
-
 ```bash
+# Bioconda is preferred; it installs pMLST, BLAST, and KMA.
 conda install -c conda-forge -c bioconda pmlst
+
+# PyPI installs the Python package only. Install blastn/kma separately.
+python3 -m pip install pmlst
+
+# Source install also requires blastn/kma from conda or the system.
+git clone https://bitbucket.org/genomicepidemiology/pmlst.git
+cd pmlst
+python3 -m pip install .
 ```
 
-Install or update the pMLST database after installing the tool. With conda,
-this installs into the current environment's default pMLST database location:
+## Database
+
+Install or update the pMLST database after installing the tool. With conda, the
+default destination is the current environment's pMLST database location.
 
 ```bash
+# Default location: conda env DB if conda is active, otherwise user data dir.
 pmlst-download-db
-```
 
-To install the database at a specific location instead:
-
-```bash
+# Custom location.
 pmlst-download-db /path/to/pmlst_db
-```
 
-Then pass a custom database path with `-p` or export it:
-
-```bash
+# Use a custom DB without passing -p every time.
 export PMLST_DB=/path/to/pmlst_db
 ```
 
@@ -42,33 +43,16 @@ pMLST looks for the database in this order:
 3. `$CONDA_PREFIX/share/pmlst/db`
 4. the platform-specific user data directory from platformdirs
 
-Install from PyPI. This installs the Python package only; `blastn` is required
-for FASTA input and `kma` is required for FASTQ input. They must be available on
-`PATH`, or their executable paths must be supplied with `-mp`.
+## Docker
 
-```bash
-python3 -m pip install pmlst
-```
-
-Install from source. This also installs the Python package only; it does not
-install BLAST or KMA.
-
-```bash
-git clone https://bitbucket.org/genomicepidemiology/pmlst.git
-cd pmlst
-python3 -m pip install .
-```
-
-The Docker image includes the packaged tool and a bundled pMLST database.
-Rebuild the image to fetch the current upstream database into the image:
+The Docker image includes pMLST, runtime dependencies, and a bundled database.
 
 ```bash
 docker build -t pmlst .
 docker run --rm -v "$PWD:/workdir" pmlst pmlst -i /workdir/test_data/test.fsa -s incf -x
 ```
 
-To keep an updated database outside the image, mount a host directory and run
-the database downloader in the container:
+To keep the database outside the image:
 
 ```bash
 docker run --rm -v "$PWD/pmlst_db:/db" pmlst pmlst-download-db /db
