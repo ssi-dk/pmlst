@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "pmlst_ssi"
-version = "2.1.0"
+version = "2.1.1"
 description = "Plasmid Multi-Locus Sequence Typing"
 readme = "README.md"
 requires-python = ">=3.10,<3.15"
@@ -55,7 +55,7 @@ only-include = [
   "pyproject.toml",
 ]
 exclude = [
-  ".gitignore",
+  "/.gitignore",
 ]
 
 [tool.black]

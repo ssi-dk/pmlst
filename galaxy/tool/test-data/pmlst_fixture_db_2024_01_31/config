@@ -3,3 +3,4 @@
 # Other important files are: noGenes.txt
 #db_prefix	name	allele_lst
 incf	IncF RST	FII,FIC,FIIK,FIIS,FIIY,FIA,FIB
+incn	IncN RST	FII,FIC,FIIK,FIIS,FIIY,FIA,FIB

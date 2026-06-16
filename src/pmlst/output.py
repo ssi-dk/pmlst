@@ -269,6 +269,8 @@ def build_simple_output_rows(
         sequence_type = data[service]["results"]["sequence_type"]
         if sequence_type == "Unknown":
             sequence_type = ""
+        if sequence_type == "":
+            continue
         if scheme == "incf":
             simple_output_list[1][1] = sequence_type.strip("[]")
         elif scheme == "inci1":

@@ -150,9 +150,7 @@ def _run(options: PmlstOptions) -> None:
         if note == "" and warning != "":
             note = warning
 
-        # Set ST for incF
-        if scheme.lower() == "incf":
-            st = format_incf_st(allele_matches)
+        st = resolve_sequence_type(scheme, st, allele_matches)
 
         clpx = find_clonal_complex(database, scheme, st, nearest_sts)
 
@@ -387,6 +385,21 @@ def type_alleles(
             }
 
     return allele_matches, warning
+
+
+def has_mlst_loci_found(allele_matches: AlleleMatches) -> bool:
+    return any(
+        allele_info.get("allele_name") != "No hit found"
+        for allele_info in allele_matches.values()
+    )
+
+
+def resolve_sequence_type(
+    scheme: str, sequence_type: str, allele_matches: AlleleMatches
+) -> str:
+    if scheme.lower() == "incf" and has_mlst_loci_found(allele_matches):
+        return format_incf_st(allele_matches)
+    return sequence_type
 
 
 def format_incf_st(allele_matches: AlleleMatches) -> str:

@@ -1,10 +1,9 @@
-name: data_manager_pmlst_database
-owner: iuc
-description: Install or update the pMLST database for Galaxy.
+name: data_manager_pmlst_ssi_database
+owner: povilasmat
+description: Install or update the pMLST-SSI database for Galaxy.
 long_description: |
-  Data manager for installing and updating the pMLST database used by the pMLST
-  Galaxy tool wrapper. The bundled fixture mode is intended for offline tests
-  only.
+  Data manager for installing and updating the pMLST database used by the
+  pMLST-SSI Galaxy tool wrapper.
 categories:
   - Data Managers
 remote_repository_url: https://github.com/ssi-dk/pmlst

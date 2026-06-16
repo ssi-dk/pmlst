@@ -1,2 +1,2 @@
 #value	name	path	version
-pmlst_fixture	pMLST fixture database (IncF only)	${__HERE__}/pmlst_fixture_db	2023-04-24
+pmlst_2024-01-31	2024-01-31	${__HERE__}/pmlst_fixture_db_2024_01_31	2024-01-31

@@ -62,7 +62,7 @@ COPY --from=builder /opt/conda/bin/pmlst.py /opt/conda/bin/pmlst.py
 COPY --from=builder /opt/conda/bin/pmlst-download-db /opt/conda/bin/pmlst-download-db
 COPY --from=builder /opt/conda/lib/python3.13/site-packages/cli.py /opt/conda/lib/python3.13/site-packages/cli.py
 COPY --from=builder /opt/conda/lib/python3.13/site-packages/pmlst /opt/conda/lib/python3.13/site-packages/pmlst
-COPY --from=builder /opt/conda/lib/python3.13/site-packages/pmlst_ssi-2.1.0.dist-info /opt/conda/lib/python3.13/site-packages/pmlst_ssi-2.1.0.dist-info
+COPY --from=builder /opt/conda/lib/python3.13/site-packages/pmlst_ssi-2.1.1.dist-info /opt/conda/lib/python3.13/site-packages/pmlst_ssi-2.1.1.dist-info
 COPY --from=builder /opt/pmlst/db /opt/pmlst/db
 
 WORKDIR /data
